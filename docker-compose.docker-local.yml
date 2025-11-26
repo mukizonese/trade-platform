@@ -1,0 +1,158 @@
+name: trade-platform-docker-local
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: trade-mysql-local
+    profiles:
+      - docker-local
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data_local:/var/lib/mysql
+      - ./conf.d:/etc/mysql/conf.d:ro
+      - ./infra/db-init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - trade-net-local
+    healthcheck:
+      #test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p${MYSQL_ROOT_PASSWORD} | grep -q 'mysqld is alive'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7.0
+    container_name: trade-mongo-local
+    profiles:
+      - docker-local
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - mongo_data_local:/data/db
+    networks:
+      - trade-net-local
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis/redis-stack:latest
+    container_name: trade-redis-local
+    profiles:
+      - docker-local
+    ports:
+      - "${REDIS_PORT}:6378"
+      - "${REDIS_PORT_GUI}:8001"
+    environment:
+      - io.lettuce.core.epoll=false
+      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data_local:/data
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    networks:
+      - trade-net-local
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    command: [ "/entrypoint.sh", "./redis-stack.conf"]
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.0
+    container_name: trade-zookeeper-local
+    profiles:
+      - docker-local
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT}:2181"
+    volumes:
+      - zookeeper_data_local:/var/lib/zookeeper/data
+      - zookeeper_logs_local:/var/lib/zookeeper/log
+    networks:
+      - trade-net-local
+    healthcheck:
+      test: nc -z localhost ${ZOOKEEPER_PORT} || exit -1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: trade-kafka-local
+    profiles:
+      - docker-local
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_INTERNAL_PORT},PLAINTEXT_HOST://localhost:${KAFKA_PORT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: "-Xmx10g"
+    ports:
+      - "${KAFKA_PORT}:9092"
+    networks:
+      - trade-net-local
+    volumes:
+      - kafka_data_local:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:${KAFKA_PORT}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: trade-chroma-local
+    profiles:
+      - docker-local
+    ports:
+      - "${VECTOR_DB_PORT}:8000"
+    volumes:
+      - chroma_data_local:/chroma/chroma
+    networks:
+      - trade-net-local
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${VECTOR_DB_PORT}/api/v1/heartbeat | grep -q 'ChromaDB is running'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mysql_data_local:
+  mongo_data_local:
+  redis_data_local:
+  zookeeper_data_local:
+  zookeeper_logs_local:
+  kafka_data_local:
+  chroma_data_local:
+networks:
+  trade-net-local:
+    driver: bridge
+
