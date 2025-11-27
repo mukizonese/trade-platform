@@ -50,6 +50,5 @@
    cd backend/trade-service
    mvn spring-boot:run -Dspring-boot.run.profiles=docker-local
    ```
-   Backend will be available at http://localhost:8088
    
    
