@@ -55,7 +55,7 @@ services:
     profiles:
       - docker-local
     ports:
-      - "${REDIS_PORT}:6378"
+      - "${REDIS_PORT}:6379"
       - "${REDIS_PORT_GUI}:8001"
     environment:
       - io.lettuce.core.epoll=false
@@ -63,6 +63,7 @@ services:
     volumes:
       - redis_data_local:/data
       - ./redis.conf:/usr/local/etc/redis/redis.conf
+      - ./redis-init-scripts:/redis-init:ro      
     networks:
       - trade-net-local
     healthcheck:
