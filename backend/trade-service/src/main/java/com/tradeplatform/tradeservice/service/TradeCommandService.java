@@ -2,6 +2,7 @@ package com.tradeplatform.tradeservice.service;
 
 import com.tradeplatform.tradeservice.dto.TradeDto;
 import com.tradeplatform.tradeservice.dto.TradeSubmissionResponse;
+import com.tradeplatform.tradeservice.kafka.TradeEventProducer;
 import com.tradeplatform.tradeservice.model.document.TradeAuditLog;
 import com.tradeplatform.tradeservice.model.entity.Trade;
 import com.tradeplatform.tradeservice.repository.TradeAuditLogRepository;
@@ -25,12 +26,18 @@ public class TradeCommandService {
     
     private final TradeRepository tradeRepository;
     private final TradeAuditLogRepository auditLogRepository;
+    private final CacheService cacheService;
+    private final TradeEventProducer eventProducer;
     
     public TradeCommandService(
             TradeRepository tradeRepository,
-            TradeAuditLogRepository auditLogRepository) {
+            TradeAuditLogRepository auditLogRepository,
+            CacheService cacheService,
+            @Autowired(required = false) TradeEventProducer eventProducer) {
         this.tradeRepository = tradeRepository;
         this.auditLogRepository = auditLogRepository;
+        this.cacheService = cacheService;
+        this.eventProducer = eventProducer;
     }
     
     private static final String EVENT_TYPE_ACCEPTED = "TRADE_ACCEPTED";
@@ -113,7 +120,20 @@ public class TradeCommandService {
                                                 null, EVENT_TYPE_ACCEPTED, auditPayload);
         auditLogRepository.save(auditLog);
         
-      
+        // Update Redis cache - store both latest and all trades
+        Map<String, Object> tradeMap = convertToMap(trade);
+        cacheService.setLatestTrade(tradeDto.getTradeId(), tradeMap);
+        cacheService.setTrade(tradeDto.getTradeId(), tradeDto.getVersion(), tradeMap);
+        
+        // Publish Kafka event (if Kafka is available)
+        if (eventProducer != null) {
+            Map<String, Object> payload = convertTradeToPayload(trade);
+            eventProducer.sendTradeEvent(EVENT_TYPE_ACCEPTED, tradeDto.getTradeId(), 
+                                        tradeDto.getVersion(), payload, null);
+        } else {
+            log.warn("Kafka not available - skipping event publication for tradeId={}", tradeDto.getTradeId());
+        }
+        
         return TradeSubmissionResponse.builder()
                 .status(VALIDATION_STATUS_ACCEPTED)
                 .eventType(EVENT_TYPE_ACCEPTED)
@@ -132,6 +152,14 @@ public class TradeCommandService {
                                                 reason, EVENT_TYPE_REJECTED, auditPayload);
         auditLogRepository.save(auditLog);
         
+        // Publish Kafka event (if Kafka is available)
+        if (eventProducer != null) {
+            Map<String, Object> payload = convertTradeDtoToPayload(tradeDto);
+            eventProducer.sendTradeEvent(EVENT_TYPE_REJECTED, tradeDto.getTradeId(), 
+                                        tradeDto.getVersion(), payload, reason);
+        } else {
+            log.warn("Kafka not available - skipping event publication for tradeId={}", tradeDto.getTradeId());
+        }
         
         return TradeSubmissionResponse.builder()
                 .status(VALIDATION_STATUS_REJECTED)
@@ -181,5 +209,19 @@ public class TradeCommandService {
         return payload;
     }
     
+    private Map<String, Object> convertToMap(Trade trade) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", trade.getId());
+        map.put("tradeId", trade.getTradeId());
+        map.put("version", trade.getVersion());
+        map.put("counterPartyId", trade.getCounterPartyId());
+        map.put("bookId", trade.getBookId());
+        map.put("maturityDate", trade.getMaturityDate().toString());
+        map.put("createdDate", trade.getCreatedDate() != null ? trade.getCreatedDate().format(DATETIME_FORMATTER) : null);
+        map.put("expired", trade.getExpired());
+        map.put("status", trade.getStatus());
+        map.put("lastUpdatedAt", trade.getLastUpdatedAt() != null ? trade.getLastUpdatedAt().format(DATETIME_FORMATTER) : null);
+        return map;
+    }
 }
 
