@@ -44,7 +44,7 @@ public class CacheService {
             String value = redisTemplate.opsForValue().get(key);
             if (value != null) {
                 T trade = objectMapper.readValue(value, clazz);
-                log.debug("Retrieved cached latest trade for tradeId: {}", tradeId);
+                //log.debug("Retrieved cached latest trade for tradeId: {}", tradeId);
                 return Optional.of(trade);
             }
         } catch (JsonProcessingException e) {
@@ -138,7 +138,7 @@ public class CacheService {
                         }
                     }
                 }
-                log.debug("Retrieved {} trades from cache", trades.size());
+                //log.debug("Retrieved {} trades from cache", trades.size());
             }
         } catch (JsonProcessingException e) {
             log.error("Error retrieving all trades from cache", e);

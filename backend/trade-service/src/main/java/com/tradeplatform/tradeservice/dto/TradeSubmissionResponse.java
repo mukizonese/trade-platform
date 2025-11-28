@@ -17,6 +17,8 @@ public class TradeSubmissionResponse {
     
     private String reason; // "LOWER_VERSION" | "PAST_MATURITY" | null
     
+    private String message; // User-friendly validation error message
+    
     private TradeDto trade; // Trade data if accepted
 }
 

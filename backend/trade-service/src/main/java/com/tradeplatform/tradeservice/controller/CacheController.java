@@ -24,7 +24,7 @@ public class CacheController {
      */
     @GetMapping
     public ResponseEntity<List<Map<String, Object>>> getAllTradesFromCache() {
-        log.info("Retrieving all trades from cache");
+        //log.info("Retrieving all trades from cache");
         List<Map<String, Object>> trades = cacheService.getAllTrades();
         return ResponseEntity.ok(trades);
     }
@@ -36,7 +36,7 @@ public class CacheController {
     @GetMapping("/{tradeId}")
     public ResponseEntity<List<Map<String, Object>>> getTradesFromCacheByTradeId(
             @PathVariable String tradeId) {
-        log.info("Retrieving trades for tradeId: {} from cache", tradeId);
+        //log.info("Retrieving trades for tradeId: {} from cache", tradeId);
         List<Map<String, Object>> trades = cacheService.getTradesByTradeId(tradeId);
         if (trades.isEmpty()) {
             return ResponseEntity.notFound().build();

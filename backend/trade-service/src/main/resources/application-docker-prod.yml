@@ -1,0 +1,83 @@
+spring:
+  datasource:
+    url: jdbc:mysql://${MYSQL_HOST:mysql}:${MYSQL_PORT:3306}/${MYSQL_DATABASE:trade_db}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${MYSQL_USERNAME:trade_user}
+    password: ${MYSQL_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+  
+  data:
+    mongodb:
+      host: ${MONGO_HOST:mongo}
+      port: ${MONGO_PORT:27017}
+      database: ${MONGO_DATABASE:trade_audit_db}
+      username: ${MONGO_USERNAME:}
+      password: ${MONGO_PASSWORD:}
+      authentication-database: admin
+  
+  redis:
+    host: ${REDIS_HOST:redis}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 10
+        max-idle: 10
+        min-idle: 2
+  
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:kafka:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.type.mapping: tradeEvent:com.tradeplatform.tradeservice.kafka.TradeEvent
+    consumer:
+      group-id: trade-service-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.type.mapping: tradeEvent:com.tradeplatform.tradeservice.kafka.TradeEvent
+        spring.json.trusted.packages: "*"
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+trade:
+  kafka:
+    topics:
+      trade-reports: ${KAFKA_TOPIC_TRADE_REPORTS:trade-reports}
+  
+  vector-db:
+    host: ${VECTOR_DB_HOST:chroma}
+    port: ${VECTOR_DB_PORT:8000}
+    collection: ${VECTOR_DB_COLLECTION:trade_reports}
+  
+  cache:
+    ttl:
+      trade-latest: 30
+      dashboard-summary: 10
+      dashboard-by-book: 10
+      dashboard-by-counterparty: 10
+  
+  scheduler:
+    expiration:
+      cron: ${TRADE_EXPIRATION_CRON}
+
+logging:
+  level:
+    root: INFO
+    com.tradeplatform: INFO
+

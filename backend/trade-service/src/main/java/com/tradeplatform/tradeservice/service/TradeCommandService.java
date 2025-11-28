@@ -16,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -138,6 +139,7 @@ public class TradeCommandService {
                 .status(VALIDATION_STATUS_ACCEPTED)
                 .eventType(EVENT_TYPE_ACCEPTED)
                 .reason(null)
+                .message("Trade submitted successfully")
                 .trade(tradeDto)
                 .build();
     }
@@ -146,27 +148,40 @@ public class TradeCommandService {
         log.warn("Trade rejected: tradeId={}, version={}, reason={}", 
                 tradeDto.getTradeId(), tradeDto.getVersion(), reason);
         
-        // Create audit log (rejected trades are not stored in MySQL)
+        // Create user-friendly validation message
+        String message = getValidationMessage(reason, tradeDto);
+        
+        // Create audit log only (rejected trades are NOT stored in MySQL, Redis, or Kafka)
         Map<String, Object> auditPayload = convertTradeDtoToPayload(tradeDto);
         TradeAuditLog auditLog = createAuditLog(tradeDto, source, VALIDATION_STATUS_REJECTED, 
                                                 reason, EVENT_TYPE_REJECTED, auditPayload);
         auditLogRepository.save(auditLog);
         
-        // Publish Kafka event (if Kafka is available)
-        if (eventProducer != null) {
-            Map<String, Object> payload = convertTradeDtoToPayload(tradeDto);
-            eventProducer.sendTradeEvent(EVENT_TYPE_REJECTED, tradeDto.getTradeId(), 
-                                        tradeDto.getVersion(), payload, reason);
-        } else {
-            log.warn("Kafka not available - skipping event publication for tradeId={}", tradeDto.getTradeId());
-        }
+        // Note: Rejected trades do NOT trigger:
+        // - MySQL save (already not happening)
+        // - Redis cache update (already not happening)
+        // - Kafka event (removed - only audit log is created)
         
         return TradeSubmissionResponse.builder()
                 .status(VALIDATION_STATUS_REJECTED)
                 .eventType(EVENT_TYPE_REJECTED)
                 .reason(reason)
+                .message(message)
                 .trade(null)
                 .build();
+    }
+    
+    private String getValidationMessage(String reason, TradeDto tradeDto) {
+        if (REASON_PAST_MATURITY.equals(reason)) {
+            return String.format("Validation failed: Trade with maturity date %s cannot be accepted. " +
+                    "The store will reject any trade that has a maturity date earlier than today's date.", 
+                    tradeDto.getMaturityDate());
+        } else if (REASON_LOWER_VERSION.equals(reason)) {
+            return String.format("Validation failed: Trade with version %d cannot be accepted. " +
+                    "Trades with lower versions are rejected during transmission.", 
+                    tradeDto.getVersion());
+        }
+        return "Validation failed: Trade submission rejected.";
     }
     
     private TradeAuditLog createAuditLog(TradeDto tradeDto, String source, 
@@ -222,6 +237,81 @@ public class TradeCommandService {
         map.put("status", trade.getStatus());
         map.put("lastUpdatedAt", trade.getLastUpdatedAt() != null ? trade.getLastUpdatedAt().format(DATETIME_FORMATTER) : null);
         return map;
+    }
+    
+    /**
+     * Find and expire all matured trades
+     * Called by scheduler to check for trades with maturity date < today
+     */
+    @Transactional
+    public void findAndExpireMaturedTrades() {
+        log.info("=== Starting to find and expire matured trades ===");
+        
+        // Find all trades where maturityDate < today and expired = 'N'
+        List<Trade> maturedTrades = tradeRepository.findMaturedTrades();
+        
+        if (maturedTrades.isEmpty()) {
+            log.info("No matured trades found to expire");
+            return;
+        }
+        
+        log.info("Found {} matured trades to expire", maturedTrades.size());
+        
+        int expiredCount = 0;
+        for (Trade trade : maturedTrades) {
+            expireTrade(trade);
+            expiredCount++;
+            log.debug("Expired trade: tradeId={}, version={}, maturityDate={}", 
+                    trade.getTradeId(), trade.getVersion(), trade.getMaturityDate());
+        }
+        
+        log.info("Successfully expired {} trades", expiredCount);
+        log.info("=== Completed finding and expiring matured trades ===");
+    }
+    
+    /**
+     * Handle expiration of a single trade: update MySQL, Redis, create audit log and send Kafka event
+     */
+    private void expireTrade(Trade trade) {
+        log.info("Processing expiration for trade: tradeId={}, version={}", 
+                trade.getTradeId(), trade.getVersion());
+        
+        // Update trade status in MySQL
+        trade.setExpired("Y");
+        trade.setStatus("INACTIVE");
+        trade.setLastUpdatedAt(LocalDateTime.now());
+        tradeRepository.save(trade);
+        
+        // Update Redis cache
+        Map<String, Object> tradeMap = convertToMap(trade);
+        cacheService.setLatestTrade(trade.getTradeId(), tradeMap);
+        cacheService.setTrade(trade.getTradeId(), trade.getVersion(), tradeMap);
+        
+        // Create audit log
+        Map<String, Object> auditPayload = convertTradeToPayload(trade);
+        TradeAuditLog auditLog = TradeAuditLog.builder()
+                .auditId(UUID.randomUUID().toString())
+                .tradeId(trade.getTradeId())
+                .version(trade.getVersion())
+                .timestamp(LocalDateTime.now())
+                .payload(auditPayload)
+                .source("SCHEDULER")
+                .validationStatus("EXPIRED")
+                .rejectionReason("MATURITY_DATE_PASSED")
+                .eventType("TRADE_EXPIRED")
+                .build();
+        auditLogRepository.save(auditLog);
+        
+        // Publish Kafka event
+        if (eventProducer != null) {
+            eventProducer.sendTradeEvent("TRADE_EXPIRED", trade.getTradeId(), 
+                                        trade.getVersion(), auditPayload, "MATURITY_DATE_PASSED");
+        } else {
+            log.warn("Kafka not available - skipping event publication for expired tradeId={}", trade.getTradeId());
+        }
+        
+        log.debug("Completed expiration processing for trade: tradeId={}, version={}", 
+                trade.getTradeId(), trade.getVersion());
     }
 }
 
