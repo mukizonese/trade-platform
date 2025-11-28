@@ -12,6 +12,7 @@ export interface TradeSubmissionResponse {
   status: string;
   eventType: string;
   reason?: string;
+  message?: string;
   trade?: TradeDto;
 }
 
@@ -31,11 +32,18 @@ export async function submitTrade(
     body: JSON.stringify(trade),
   });
 
+  const data = await response.json();
+
+  // If status is REJECTED, throw error with the validation message
+  if (data.status === 'REJECTED') {
+    throw new Error(data.message || `Validation failed: ${data.reason || 'Unknown error'}`);
+  }
+
   if (!response.ok) {
     throw new Error(`Failed to submit trade: ${response.statusText}`);
   }
 
-  return response.json();
+  return data;
 }
 
 export async function getAllTradesFromCache(): Promise<CachedTrade[]> {
