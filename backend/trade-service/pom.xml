@@ -90,6 +90,13 @@
             <scope>test</scope>
         </dependency>
         
+        <!-- H2 Database for Testing -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka-test</artifactId>
@@ -174,6 +181,11 @@
                     <skipRuntimeScope>false</skipRuntimeScope>
                     <!-- Suppress false positives if needed -->
                     <suppressionFile>owasp-suppressions.xml</suppressionFile>
+                    <!-- Workaround for CVSS v4 parsing issue in OWASP 10.0.4 -->
+                    <!-- Extended cache validity to reduce NVD update frequency -->
+                    <nvdValidForHours>720</nvdValidForHours>
+                    <cveValidForHours>0</cveValidForHours>
+                    <cveStartYear>2020</cveStartYear>
                 </configuration>
                 <executions>
                     <execution>
