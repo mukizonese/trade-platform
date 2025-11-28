@@ -51,7 +51,6 @@ spring:
 trade:
   kafka:
     topics:
-      trade-events: ${KAFKA_TOPIC_TRADE_EVENTS}
       trade-reports: ${KAFKA_TOPIC_TRADE_REPORTS}
   
   vector-db:
