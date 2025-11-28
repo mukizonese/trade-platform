@@ -23,6 +23,7 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <testcontainers.version>1.19.8</testcontainers.version>
     </properties>
     
     <dependencies>
@@ -107,24 +108,35 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
+            <version>${testcontainers.version}</version>
+            <scope>test</scope>
+        </dependency>
+        
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mysql</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>mongodb</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>kafka</artifactId>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -146,6 +158,31 @@
             <plugin>
 				<artifactId>maven-resources-plugin</artifactId>
 			</plugin>
+            <!-- OWASP Dependency Check Plugin for Vulnerability Scanning -->
+            <plugin>
+                <groupId>org.owasp</groupId>
+                <artifactId>dependency-check-maven</artifactId>
+                <version>10.0.4</version>
+                <configuration>
+                    <!-- Fail build on CVSS score >= 7.0 (High/Critical) -->
+                    <failBuildOnCVSS>7.0</failBuildOnCVSS>
+                    <!-- Generate multiple report formats -->
+                    <format>ALL</format>
+                    <!-- Skip provided scope dependencies (usually not included in final artifact) -->
+                    <skipProvidedScope>true</skipProvidedScope>
+                    <!-- Include runtime scope dependencies -->
+                    <skipRuntimeScope>false</skipRuntimeScope>
+                    <!-- Suppress false positives if needed -->
+                    <suppressionFile>owasp-suppressions.xml</suppressionFile>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 </project>
