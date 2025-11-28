@@ -17,7 +17,7 @@ export interface TradeSubmissionResponse {
 }
 
 export interface CachedTrade {
-  [key: string]: any;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 export async function submitTrade(

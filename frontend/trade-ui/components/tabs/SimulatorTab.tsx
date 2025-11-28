@@ -27,7 +27,7 @@ export default function SimulatorTab() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
   // Fetch trades from cache
-  const { data: trades = [], isLoading, refetch } = useQuery<CachedTrade[]>({
+  const { data: trades = [], isLoading } = useQuery<CachedTrade[]>({
     queryKey: ['trades', 'cache'],
     queryFn: getAllTradesFromCache,
     refetchInterval: 5000, // Refetch every 5 seconds
@@ -59,7 +59,7 @@ export default function SimulatorTab() {
   };
 
   // Helper to get trade field value
-  const getTradeValue = (trade: CachedTrade, field: string): string | number | boolean => {
+  const getTradeValue = (trade: CachedTrade, field: string): string | number | boolean | null | undefined => {
     // Handle camelCase and PascalCase
     const camelCase = trade[field];
     const pascalCase = trade[field.charAt(0).toUpperCase() + field.slice(1)];
@@ -68,8 +68,8 @@ export default function SimulatorTab() {
   };
 
   // Helper to format date
-  const formatDate = (dateValue: string | number | boolean): string => {
-    if (!dateValue || dateValue === '-') return '-';
+  const formatDate = (dateValue: string | number | boolean | null | undefined): string => {
+    if (!dateValue || dateValue === '-' || dateValue === null || dateValue === undefined) return '-';
     const dateStr = String(dateValue);
     if (!dateStr || dateStr === 'null' || dateStr === 'undefined') return '-';
     try {
