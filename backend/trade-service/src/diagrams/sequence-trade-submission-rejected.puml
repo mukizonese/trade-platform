@@ -1,0 +1,70 @@
+@startuml Trade Submission - Rejected
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+
+actor Client
+participant TradeController
+participant TradeCommandService
+participant TradeRepository
+participant TradeAuditLogRepository
+database MySQL
+database MongoDB
+
+Client -> TradeController: POST /api/trades\n(TradeDto, source)
+activate TradeController
+
+TradeController -> TradeCommandService: submitTrade(tradeDto, source)
+activate TradeCommandService
+
+alt Past Maturity Date
+    TradeCommandService -> TradeCommandService: isPastMaturity(maturityDate)
+    activate TradeCommandService
+    TradeCommandService --> TradeCommandService: true
+    deactivate TradeCommandService
+    
+    TradeCommandService -> TradeCommandService: handleRejection(tradeDto, source, PAST_MATURITY)
+    activate TradeCommandService
+    
+else Lower Version
+    TradeCommandService -> TradeRepository: findMaxVersionByTradeId(tradeId)
+    activate TradeRepository
+    TradeRepository -> MySQL: SELECT MAX(version)
+    MySQL --> TradeRepository: Optional<Integer> maxVersion
+    TradeRepository --> TradeCommandService: Optional<Integer> maxVersion
+    deactivate TradeRepository
+    
+    TradeCommandService -> TradeCommandService: Check version < maxVersion
+    activate TradeCommandService
+    TradeCommandService --> TradeCommandService: true
+    deactivate TradeCommandService
+    
+    TradeCommandService -> TradeCommandService: handleRejection(tradeDto, source, LOWER_VERSION)
+    activate TradeCommandService
+end
+
+TradeCommandService -> TradeCommandService: createAuditLog(...)
+activate TradeCommandService
+TradeCommandService -> TradeAuditLogRepository: save(auditLog)
+activate TradeAuditLogRepository
+TradeAuditLogRepository -> MongoDB: INSERT audit log\n(validationStatus=REJECTED)
+MongoDB --> TradeAuditLogRepository: TradeAuditLog
+TradeAuditLogRepository --> TradeCommandService: TradeAuditLog
+deactivate TradeAuditLogRepository
+deactivate TradeCommandService
+
+note right: Rejected trades are NOT saved to:\n- MySQL\n- Redis\n- Kafka
+
+TradeCommandService -> TradeCommandService: Build TradeSubmissionResponse\n(status=REJECTED)
+deactivate TradeCommandService
+
+TradeCommandService --> TradeController: TradeSubmissionResponse
+deactivate TradeCommandService
+
+TradeController --> Client: 400 Bad Request\nTradeSubmissionResponse
+deactivate TradeController
+
+@enduml
+

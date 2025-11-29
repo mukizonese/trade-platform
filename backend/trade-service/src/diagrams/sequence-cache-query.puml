@@ -1,0 +1,40 @@
+@startuml Cache Query
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+
+actor Client
+participant CacheController
+participant CacheService
+database Redis
+
+Client -> CacheController: GET /api/trades/cache/{tradeId}
+activate CacheController
+
+CacheController -> CacheService: getTradesByTradeId(tradeId)
+activate CacheService
+
+CacheService -> Redis: KEYS trade:{tradeId}:*
+Redis --> CacheService: Set<String> keys
+
+loop For each key
+    CacheService -> Redis: GET key
+    Redis --> CacheService: String value (JSON)
+    CacheService -> CacheService: Deserialize JSON to Map
+end
+
+CacheService -> CacheService: sortByLastUpdatedAtDescending()
+activate CacheService
+CacheService --> CacheService: List<Map<String, Object>>
+deactivate CacheService
+
+CacheService --> CacheController: List<Map<String, Object>>
+deactivate CacheService
+
+CacheController --> Client: 200 OK\nList<Map<String, Object>>
+deactivate CacheController
+
+@enduml
+

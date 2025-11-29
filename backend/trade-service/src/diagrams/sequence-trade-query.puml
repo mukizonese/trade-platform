@@ -1,0 +1,61 @@
+@startuml Trade Query
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+
+actor Client
+participant TradeController
+participant TradeQueryService
+participant TradeRepository
+database MySQL
+
+Client -> TradeController: GET /api/trades\n?latestOnly=true&tradeId=T1
+activate TradeController
+
+TradeController -> TradeQueryService: getTrades(latestOnly, tradeId, ...)
+activate TradeQueryService
+
+alt Query by tradeId
+    alt latestOnly = true
+        TradeQueryService -> TradeRepository: findLatestByTradeId(tradeId)
+        activate TradeRepository
+        TradeRepository -> MySQL: SELECT with MAX(version)
+        MySQL --> TradeRepository: Optional<Trade>
+        TradeRepository --> TradeQueryService: Optional<Trade>
+        deactivate TradeRepository
+    else latestOnly = false
+        TradeQueryService -> TradeRepository: findByTradeId(tradeId)
+        activate TradeRepository
+        TradeRepository -> MySQL: SELECT all versions
+        MySQL --> TradeRepository: List<Trade>
+        TradeRepository --> TradeQueryService: List<Trade>
+        deactivate TradeRepository
+    end
+else Query all trades
+    TradeQueryService -> TradeRepository: findAll(pageable)
+    activate TradeRepository
+    TradeRepository -> MySQL: SELECT with pagination
+    MySQL --> TradeRepository: Page<Trade>
+    TradeRepository --> TradeQueryService: Page<Trade>
+    deactivate TradeRepository
+    
+    alt latestOnly = true
+        TradeQueryService -> TradeQueryService: Filter to latest versions
+    end
+end
+
+TradeQueryService -> TradeQueryService: convertToResponse(trade)
+activate TradeQueryService
+TradeQueryService --> TradeQueryService: TradeQueryResponse
+deactivate TradeQueryService
+
+TradeQueryService --> TradeController: Page<TradeQueryResponse>
+deactivate TradeQueryService
+
+TradeController --> Client: 200 OK\nPage<TradeQueryResponse>
+deactivate TradeController
+
+@enduml
+

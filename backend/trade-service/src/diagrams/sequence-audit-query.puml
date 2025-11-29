@@ -1,0 +1,36 @@
+@startuml Audit Log Query
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+
+actor Client
+participant AuditController
+participant TradeAuditLogRepository
+database MongoDB
+
+Client -> AuditController: GET /api/audit/trades\n?page=0&size=50
+activate AuditController
+
+AuditController -> TradeAuditLogRepository: findAll(pageable)\n(Sort by timestamp DESC)
+activate TradeAuditLogRepository
+
+TradeAuditLogRepository -> MongoDB: FIND with pagination\nSORT by timestamp DESC
+MongoDB --> TradeAuditLogRepository: Page<TradeAuditLog>
+TradeAuditLogRepository --> AuditController: Page<TradeAuditLog>
+deactivate TradeAuditLogRepository
+
+loop For each audit log
+    AuditController -> AuditController: convertToDto(auditLog)
+    activate AuditController
+    note right: Extract fields from payload:\n- bookId\n- counterPartyId\n- maturityDate\n- expired\n- createdDate\n- lastUpdatedAt
+    AuditController --> AuditController: AuditDto
+    deactivate AuditController
+end
+
+AuditController --> Client: 200 OK\nPage<AuditDto>
+deactivate AuditController
+
+@enduml
+
