@@ -182,6 +182,60 @@ jobs:
           KAFKA_BOOTSTRAP_SERVERS: localhost:9092
           SPRING_PROFILES_ACTIVE: local
       
+      - name: Prepare and check test reports
+        if: always()
+        working-directory: ./backend/trade-service
+        run: |
+          # Ensure directory exists
+          mkdir -p target/surefire-reports
+          
+          # Check for XML test reports
+          XML_COUNT=$(find target/surefire-reports -name "*.xml" 2>/dev/null | wc -l | tr -d ' ')
+          
+          if [ "$XML_COUNT" -eq 0 ]; then
+            echo "⚠️ No Surefire XML test reports found in target/surefire-reports/"
+            echo "Checking for test output in other locations..."
+            
+            # Check if target directory exists at all
+            if [ -d "target" ]; then
+              echo "Target directory structure:"
+              find target -type d -maxdepth 2 2>/dev/null | head -10 || true
+              echo ""
+              echo "Looking for any test-related files:"
+              find target -name "*test*" -o -name "*Test*" 2>/dev/null | head -10 || true
+            fi
+            
+            # Create a summary file explaining the situation
+            cat > target/surefire-reports/test-summary.txt << EOF
+Test Execution Summary
+======================
+Tests were executed but no Surefire XML reports were found.
+
+Possible reasons:
+1. Tests completed but didn't generate XML reports
+2. Tests use a different reporting format
+3. Reports are generated in a different location
+4. Test execution was skipped or had issues
+
+This is a warning, not an error. The build will continue.
+EOF
+            echo ""
+            echo "Created summary file: target/surefire-reports/test-summary.txt"
+          else
+            echo "✅ Found $XML_COUNT Surefire XML test report file(s)"
+            echo "Report files:"
+            find target/surefire-reports -name "*.xml" 2>/dev/null | head -5
+          fi
+      
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/trade-service/target/surefire-reports/
+          retention-days: 7
+          if-no-files-found: warn
+      
       - name: Build application
         working-directory: ./backend/trade-service
         run: mvn clean package -DskipTests
@@ -198,14 +252,6 @@ jobs:
           REDIS_PORT: 6379
           KAFKA_BOOTSTRAP_SERVERS: localhost:9092
           SPRING_PROFILES_ACTIVE: local
-      
-      - name: Upload test results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-test-results
-          path: backend/trade-service/target/surefire-reports/
-          retention-days: 7
 
   frontend-vulnerability-scan:
     name: Frontend Vulnerability Scan
@@ -307,6 +353,8 @@ jobs:
         with:
           name: backend-test-results
           path: backend-test-results/
+          if-no-files-found: ignore
+        continue-on-error: true
       
       - name: Generate test summary
         run: |
@@ -314,6 +362,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Backend Tests" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ needs.backend-build-test.result }}" >> $GITHUB_STEP_SUMMARY
+          if [ -d "backend-test-results" ] && [ "$(ls -A backend-test-results 2>/dev/null)" ]; then
+            echo "- Test Reports: ✅ Available" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- Test Reports: ⚠️ Not available (tests may not have generated reports)" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Frontend Tests" >> $GITHUB_STEP_SUMMARY
           echo "- Status: ${{ needs.frontend-build-test.result }}" >> $GITHUB_STEP_SUMMARY
