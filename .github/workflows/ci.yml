@@ -206,19 +206,19 @@ jobs:
             fi
             
             # Create a summary file explaining the situation
-            cat > target/surefire-reports/test-summary.txt << EOF
-Test Execution Summary
-======================
-Tests were executed but no Surefire XML reports were found.
-
-Possible reasons:
-1. Tests completed but didn't generate XML reports
-2. Tests use a different reporting format
-3. Reports are generated in a different location
-4. Test execution was skipped or had issues
-
-This is a warning, not an error. The build will continue.
-EOF
+            {
+              echo "Test Execution Summary"
+              echo "======================"
+              echo "Tests were executed but no Surefire XML reports were found."
+              echo ""
+              echo "Possible reasons:"
+              echo "1. Tests completed but didn't generate XML reports"
+              echo "2. Tests use a different reporting format"
+              echo "3. Reports are generated in a different location"
+              echo "4. Test execution was skipped or had issues"
+              echo ""
+              echo "This is a warning, not an error. The build will continue."
+            } > target/surefire-reports/test-summary.txt
             echo ""
             echo "Created summary file: target/surefire-reports/test-summary.txt"
           else
