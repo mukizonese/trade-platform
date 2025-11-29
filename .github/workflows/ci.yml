@@ -34,28 +34,18 @@ jobs:
         working-directory: ./backend/trade-service
         run: |
           # Workaround for CVSS v4 parsing issue in OWASP 10.0.4
-          # The error occurs when parsing NVD data with CVSS v4 metrics
-          # Solution: Use local cached data if NVD update fails
+          # Skip NVD update to avoid 48min timeout and parsing errors
+          # Uses cached vulnerability data (updated from previous runs)
+          echo "Running OWASP scan with cached data (skipping NVD update to avoid CVSS v4 parsing error)..."
           mvn org.owasp:dependency-check-maven:check \
             -DfailBuildOnCVSS=7.0 \
             -Dformat=ALL \
             -DskipProvidedScope=true \
             -DskipRuntimeScope=false \
-            -DnvdValidForHours=720 \
+            -DnvdValidForHours=999999 \
+            -DcveValidForHours=999999 \
             -DcveStartYear=2020 \
-            -DcveValidForHours=0 || {
-            echo "⚠️ OWASP scan encountered NVD parsing error (known CVSS v4 issue)"
-            echo "Retrying with extended cache validity to use local data..."
-            # Retry with longer cache validity to skip NVD update
-            mvn org.owasp:dependency-check-maven:check \
-              -DfailBuildOnCVSS=7.0 \
-              -Dformat=ALL \
-              -DskipProvidedScope=true \
-              -DskipRuntimeScope=false \
-              -DnvdValidForHours=999999 \
-              -DcveValidForHours=999999 \
-              -DcveStartYear=2020
-          }
+            -DautoUpdate=false
         continue-on-error: false
       
       - name: Upload OWASP Dependency Check Report

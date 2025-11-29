@@ -124,9 +124,11 @@
                     <!-- Suppress false positives if needed -->
                     <suppressionFile>owasp-suppressions.xml</suppressionFile>
                     <!-- Workaround for CVSS v4 parsing issue in OWASP 10.0.4 -->
-                    <!-- Extended cache validity to reduce NVD update frequency -->
-                    <nvdValidForHours>720</nvdValidForHours>
-                    <cveValidForHours>0</cveValidForHours>
+                    <!-- Skip NVD update to avoid 48min timeout and CVSS v4 parsing errors -->
+                    <!-- Uses cached vulnerability data (updated from previous successful runs) -->
+                    <autoUpdate>false</autoUpdate>
+                    <nvdValidForHours>999999</nvdValidForHours>
+                    <cveValidForHours>999999</cveValidForHours>
                     <cveStartYear>2020</cveStartYear>
                 </configuration>
                 <executions>
