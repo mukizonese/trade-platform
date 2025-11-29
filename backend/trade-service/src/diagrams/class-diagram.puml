@@ -1,0 +1,73 @@
+@startuml
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FFFFFF
+
+title Trade Service - Class Diagram
+
+package "Controller Layer" {
+  class TradeController
+  class AuditController
+  class CacheController
+}
+
+package "Service Layer" {
+  class TradeCommandService
+  class TradeQueryService
+  class CacheService
+}
+
+package "Repository Layer" {
+  interface TradeRepository
+  interface TradeAuditLogRepository
+}
+
+package "Model Layer" {
+  class Trade
+  class TradeAuditLog
+}
+
+package "DTO Layer" {
+  class TradeDto
+  class TradeSubmissionResponse
+  class TradeQueryResponse
+  class AuditDto
+}
+
+package "Infrastructure" {
+  class TradeEventProducer
+  class TradeExpirationScheduler
+}
+
+' Controller to Service
+TradeController --> TradeCommandService
+TradeController --> TradeQueryService
+AuditController --> TradeAuditLogRepository
+CacheController --> CacheService
+
+' Service to Repository
+TradeCommandService --> TradeRepository
+TradeCommandService --> TradeAuditLogRepository
+TradeQueryService --> TradeRepository
+
+' Service to Service
+TradeCommandService --> CacheService
+TradeCommandService --> TradeEventProducer
+TradeExpirationScheduler --> TradeCommandService
+
+' Repository to Model
+TradeRepository ..> Trade
+TradeAuditLogRepository ..> TradeAuditLog
+
+' Service to Model
+TradeCommandService ..> Trade
+TradeCommandService ..> TradeAuditLog
+TradeQueryService ..> Trade
+
+' Controller to DTO
+TradeController ..> TradeDto
+TradeController ..> TradeSubmissionResponse
+TradeController ..> TradeQueryResponse
+AuditController ..> AuditDto
+
+@enduml

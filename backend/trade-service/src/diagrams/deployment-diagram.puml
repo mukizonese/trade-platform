@@ -1,0 +1,63 @@
+@startuml
+title Trade Platform - Deployment Architecture
+
+rectangle "Client Layer" {
+  [Web Browser] as Browser
+  [Mobile App] as Mobile
+  [External API Client] as APIClient
+}
+
+rectangle "Gateway Layer" {
+  [Load Balancer\n/ API Gateway] as Gateway
+}
+
+rectangle "Application Tier" {
+  [Trade Service\nInstance 1] as App1
+  [Trade Service\nInstance 2] as App2
+  [Trade Service\nInstance N] as AppN
+}
+
+rectangle "Infrastructure (Docker Containers)" {
+  package "Database Cluster" {
+    database "MySQL Primary" as MySQLPrimary
+    database "MySQL Replica" as MySQLReplica
+    database "MongoDB" as MongoDB
+    database "Redis" as Redis
+  }
+  package "Message Queue" {
+    node "Kafka Broker" as Kafka
+    node "Zookeeper" as Zookeeper
+  }
+}
+
+rectangle "Monitoring" {
+  [Prometheus] as Prometheus
+  [Grafana] as Grafana
+}
+
+Browser --> Gateway : HTTPS
+Mobile --> Gateway : HTTPS
+APIClient --> Gateway : HTTPS
+
+Gateway --> App1 : HTTP
+Gateway --> App2 : HTTP
+Gateway --> AppN : HTTP
+
+App1 --> MySQLPrimary
+App1 --> MongoDB
+App1 --> Redis
+App1 --> Kafka
+
+App2 --> MySQLPrimary
+App2 --> MongoDB
+App2 --> Redis
+App2 --> Kafka
+
+Kafka --> Zookeeper
+MySQLPrimary --> MySQLReplica
+
+App1 --> Prometheus
+App2 --> Prometheus
+Prometheus --> Grafana
+
+@enduml
