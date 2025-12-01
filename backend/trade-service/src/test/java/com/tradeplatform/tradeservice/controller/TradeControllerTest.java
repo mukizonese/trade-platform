@@ -1,8 +1,8 @@
 package com.tradeplatform.tradeservice.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tradeplatform.tradeservice.dto.TradeDto;
-import com.tradeplatform.tradeservice.dto.TradeSubmissionResponse;
+import com.tradeplatform.common.dto.TradeDto;
+import com.tradeplatform.common.dto.TradeSubmissionResponse;
 import com.tradeplatform.tradeservice.service.TradeCommandService;
 import com.tradeplatform.tradeservice.service.TradeQueryService;
 import org.junit.jupiter.api.Test;

@@ -1,4 +1,4 @@
-package com.tradeplatform.tradeservice.dto;
+package com.tradeplatform.common.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.NotBlank;

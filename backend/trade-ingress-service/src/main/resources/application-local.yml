@@ -1,0 +1,13 @@
+trade:
+  service:
+    url: ${TRADE_SERVICE_URL:http://localhost:8080}
+
+api:
+  paths:
+    trades: ${API_PATH_TRADES:/api/trades}
+    cache: ${API_PATH_CACHE:/api/trades/cache}
+    audit: ${API_PATH_AUDIT:/api/audit}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+

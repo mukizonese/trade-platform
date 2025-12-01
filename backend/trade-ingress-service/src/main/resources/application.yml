@@ -1,19 +1,16 @@
 spring:
   application:
-    name: trade-service
+    name: trade-ingress-service
   
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:local}
-  
-  data:
-    mongodb:
-      # Scan for MongoDB documents in common package
-      auto-index-creation: true
 
 server:
-  port: ${TRADE_SERVICE_PORT}
+  port: ${INGRESS_PORT:8081}
 
 management:
+  server:
+    port: ${INGRESS_PORT:8081}
   endpoints:
     web:
       exposure:
@@ -27,9 +24,13 @@ logging:
     root: WARN
     org.springframework.web: WARN
     org.springframework.boot: WARN
-    org.springframework.data: WARN
-    org.hibernate: WARN
     com.tradeplatform: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+api:
+  paths:
+    trades: ${API_PATH_TRADES:/api/trades}
+    cache: ${API_PATH_CACHE:/api/trades/cache}
+    audit: ${API_PATH_AUDIT:/api/audit}
 

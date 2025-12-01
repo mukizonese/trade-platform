@@ -1,4 +1,4 @@
-package com.tradeplatform.tradeservice.dto;
+package com.tradeplatform.common.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,5 +39,4 @@ public class AuditDto {
     
     private String eventType;
 }
-
 

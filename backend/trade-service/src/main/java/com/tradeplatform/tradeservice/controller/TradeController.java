@@ -1,8 +1,8 @@
 package com.tradeplatform.tradeservice.controller;
 
-import com.tradeplatform.tradeservice.dto.TradeDto;
-import com.tradeplatform.tradeservice.dto.TradeQueryResponse;
-import com.tradeplatform.tradeservice.dto.TradeSubmissionResponse;
+import com.tradeplatform.common.dto.TradeDto;
+import com.tradeplatform.common.dto.TradeQueryResponse;
+import com.tradeplatform.common.dto.TradeSubmissionResponse;
 import com.tradeplatform.tradeservice.service.TradeCommandService;
 import com.tradeplatform.tradeservice.service.TradeQueryService;
 import jakarta.validation.Valid;

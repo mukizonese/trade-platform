@@ -1,6 +1,6 @@
 package com.tradeplatform.tradeservice.integration;
 
-import com.tradeplatform.tradeservice.dto.TradeDto;
+import com.tradeplatform.common.dto.TradeDto;
 import com.tradeplatform.tradeservice.model.document.TradeAuditLog;
 import com.tradeplatform.tradeservice.repository.TradeAuditLogRepository;
 import com.tradeplatform.tradeservice.service.TradeCommandService;

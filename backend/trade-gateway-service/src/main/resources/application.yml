@@ -1,0 +1,91 @@
+spring:
+  application:
+    name: trade-gateway-service
+  
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 30s
+        pool:
+          type: ELASTIC
+          max-connections: 200
+          max-idle-time: 20s
+          max-life-time: 60s
+          evict-in-background: true
+        compression: true
+      # Prevent forwarded header accumulation
+      forward-headers-strategy: native
+      routes:
+        # Trade Ingress Service Routes (Input APIs)
+        - id: trade-ingress-trades
+          uri: ${GATEWAY_TRADE_INGRESS_URL:http://localhost:8091}
+          predicates:
+            - Path=${GATEWAY_PATH_TRADES:/api/trades}/**
+          filters:
+            - StripPrefix=0
+        
+        - id: trade-ingress-cache
+          uri: ${GATEWAY_TRADE_INGRESS_URL:http://localhost:8091}
+          predicates:
+            - Path=${GATEWAY_PATH_TRADES_CACHE:/api/trades/cache}/**
+          filters:
+            - StripPrefix=0
+        
+        - id: trade-ingress-audit
+          uri: ${GATEWAY_TRADE_INGRESS_URL:http://localhost:8091}
+          predicates:
+            - Path=${GATEWAY_PATH_AUDIT:/api/audit}/**
+          filters:
+            - StripPrefix=0
+        
+       
+        # Trade Auth Service Routes (Future)
+        - id: trade-auth
+          uri: ${GATEWAY_TRADE_AUTH_URL:http://localhost:8082}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=0
+        
+        # # Trade Analytics Service Routes (Future)
+        # - id: trade-analytics
+        #   uri: ${GATEWAY_TRADE_ANALYTICS_URL:http://localhost:8083}
+        #   predicates:
+        #     - Path=/api/analytics/**
+        #   filters:
+        #     - StripPrefix=0
+        
+        # # Trade AI Service Routes (Future)
+        # - id: trade-ai
+        #   uri: ${GATEWAY_TRADE_AI_URL:http://localhost:8084}
+        #   predicates:
+        #     - Path=/api/ai/**
+        #   filters:
+        #     - StripPrefix=0
+
+server:
+  port: ${GATEWAY_PORT:8085}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    root: WARN
+    org.springframework.cloud.gateway: WARN
+    org.springframework.web: WARN
+    org.springframework.boot: WARN
+    com.tradeplatform: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+

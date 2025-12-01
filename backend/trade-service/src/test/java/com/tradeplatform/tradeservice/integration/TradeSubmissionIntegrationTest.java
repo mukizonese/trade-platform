@@ -1,7 +1,7 @@
 package com.tradeplatform.tradeservice.integration;
 
-import com.tradeplatform.tradeservice.dto.TradeDto;
-import com.tradeplatform.tradeservice.dto.TradeSubmissionResponse;
+import com.tradeplatform.common.dto.TradeDto;
+import com.tradeplatform.common.dto.TradeSubmissionResponse;
 import com.tradeplatform.tradeservice.model.entity.Trade;
 import com.tradeplatform.tradeservice.repository.TradeRepository;
 import com.tradeplatform.tradeservice.service.TradeCommandService;

@@ -1,0 +1,5 @@
+# Profile-specific configuration for local environment
+# Routes are defined in application.yml with environment variable defaults
+# Override URIs via environment variables if needed:
+# GATEWAY_TRADE_INGRESS_URL, GATEWAY_TRADE_SERVICE_URL, etc.
+

@@ -1,6 +1,6 @@
 package com.tradeplatform.tradeservice.service;
 
-import com.tradeplatform.tradeservice.dto.TradeQueryResponse;
+import com.tradeplatform.common.dto.TradeQueryResponse;
 import com.tradeplatform.tradeservice.model.entity.Trade;
 import com.tradeplatform.tradeservice.repository.TradeRepository;
 import lombok.RequiredArgsConstructor;

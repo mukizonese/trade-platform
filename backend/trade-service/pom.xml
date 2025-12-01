@@ -6,26 +6,24 @@
     <modelVersion>4.0.0</modelVersion>
     
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.3.5</version>
-        <relativePath/>
+        <groupId>com.tradeplatform</groupId>
+        <artifactId>trade-platform-backend</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     
-    <groupId>com.tradeplatform</groupId>
     <artifactId>trade-service</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
     <name>Trade Service</name>
     <description>Trade Platform Backend Service</description>
     
-    <properties>
-        <java.version>17</java.version>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-    
     <dependencies>
+        <!-- Trade Common Service -->
+        <dependency>
+            <groupId>com.tradeplatform</groupId>
+            <artifactId>trade-common-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        
         <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

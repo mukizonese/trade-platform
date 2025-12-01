@@ -1,6 +1,6 @@
 package com.tradeplatform.tradeservice.controller;
 
-import com.tradeplatform.tradeservice.dto.AuditDto;
+import com.tradeplatform.common.dto.AuditDto;
 import com.tradeplatform.tradeservice.model.document.TradeAuditLog;
 import com.tradeplatform.tradeservice.repository.TradeAuditLogRepository;
 import lombok.RequiredArgsConstructor;

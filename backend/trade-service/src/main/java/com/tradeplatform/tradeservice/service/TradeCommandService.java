@@ -1,7 +1,7 @@
 package com.tradeplatform.tradeservice.service;
 
-import com.tradeplatform.tradeservice.dto.TradeDto;
-import com.tradeplatform.tradeservice.dto.TradeSubmissionResponse;
+import com.tradeplatform.common.dto.TradeDto;
+import com.tradeplatform.common.dto.TradeSubmissionResponse;
 import com.tradeplatform.tradeservice.kafka.TradeEventProducer;
 import com.tradeplatform.tradeservice.model.document.TradeAuditLog;
 import com.tradeplatform.tradeservice.model.entity.Trade;
