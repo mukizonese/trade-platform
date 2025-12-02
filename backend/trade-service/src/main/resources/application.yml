@@ -33,3 +33,8 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
+security:
+  enforce-gateway-only: ${SECURITY_ENFORCE_GATEWAY_ONLY:false}
+  allowed-ips-string: ${SECURITY_ALLOWED_IPS:127.0.0.1,::1,0:0:0:0:0:0:0:1,localhost}
+  excluded-paths-string: ${SECURITY_EXCLUDED_PATHS:/actuator/health,/actuator/info,/actuator/metrics}
+
