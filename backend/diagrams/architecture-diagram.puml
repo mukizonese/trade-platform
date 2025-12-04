@@ -1,0 +1,38 @@
+@startuml
+title Trade Platform - High Level Architecture
+actor Trader
+rectangle "Web / UI Layer" {
+  node "Trade UI (React/Next.js)" as UI
+}
+rectangle "Backend Services (Spring Boot)" {
+  component "Gateway Service\n(Spring Cloud Gateway)" as GatewaySvc
+  component "Ingress Service\n(Resilience Patterns)" as IngressSvc
+  component "Trade Service\n(Business Logic)" as TradeSvc
+}
+rectangle "Infrastructure" {
+  package "Docker Containers" {
+    database "MySQL\ntrade_db" as MySQL
+    node "Redis Cache" as Redis
+    node "Kafka Broker" as Kafka
+    database "MongoDB\ntrade_audit_db" as Mongo
+  }
+}
+rectangle "Data Lake / Analytics" {
+  node "Spark Jobs" as Spark
+  node "MinIO / S3\nParquet Storage" as Minio
+  node "Trino / Superset" as Trino
+}
+Trader --> UI: HTTP(S)
+UI --> GatewaySvc: REST / JSON
+GatewaySvc --> IngressSvc: Route requests\nRate limiting
+IngressSvc --> TradeSvc: Circuit breaker\nResilience
+TradeSvc --> MySQL : CRUD trades
+TradeSvc --> Redis : Cache lookups
+TradeSvc --> Kafka : Publish trade events
+TradeSvc --> Mongo : Write audit logs
+GatewaySvc --> Redis : Rate limit check
+Kafka --> Spark : Stream trades/holdings
+Spark --> Minio : Write Parquet
+Trino --> Minio : Query data
+@enduml
+

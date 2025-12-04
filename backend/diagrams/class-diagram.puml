@@ -1,0 +1,110 @@
+@startuml
+!theme plain
+skinparam linetype ortho
+skinparam backgroundColor #FFFFFF
+
+title Trade Platform - Class Diagram
+
+package "Gateway Service" {
+  package "Config" {
+    class GatewayConfig
+    class RateLimitConfig
+  }
+  package "Filter" {
+    class RateLimitLoggingFilter
+  }
+}
+
+package "Ingress Service" {
+  package "Controller" {
+    class TradeController
+    class AuditController
+    class CacheController
+    class GlobalExceptionHandler
+  }
+  package "Client" {
+    class TradeServiceClient
+  }
+  package "Config" {
+    class ApiPathsConfig
+    class TradeServiceClientConfig
+  }
+}
+
+package "Trade Service" {
+  package "Controller" {
+    class TradeController
+    class AuditController
+    class CacheController
+    class HealthController
+    class GlobalExceptionHandler
+  }
+  package "Service" {
+    class TradeCommandService
+    class TradeQueryService
+    class CacheService
+  }
+  package "Repository" {
+    interface TradeRepository
+    interface TradeAuditLogRepository
+  }
+  package "Model" {
+    class Trade
+    class TradeAuditLog
+  }
+  package "DTO" {
+    class TradeDto
+    class TradeSubmissionResponse
+    class TradeQueryResponse
+    class AuditDto
+  }
+  package "Infrastructure" {
+    class TradeEventProducer
+    class TradeExpirationScheduler
+  }
+}
+
+' Gateway Service relationships
+RateLimitConfig ..> RateLimitLoggingFilter
+
+' Ingress Service relationships
+IngressService::TradeController --> IngressService::TradeServiceClient
+IngressService::AuditController --> IngressService::TradeServiceClient
+IngressService::CacheController --> IngressService::TradeServiceClient
+IngressService::TradeServiceClient --> IngressService::TradeServiceClientConfig
+IngressService::TradeController ..> IngressService::ApiPathsConfig
+IngressService::AuditController ..> IngressService::ApiPathsConfig
+IngressService::CacheController ..> IngressService::ApiPathsConfig
+
+' Ingress to Trade Service
+IngressService::TradeServiceClient ..> TradeService::TradeController
+IngressService::TradeServiceClient ..> TradeService::AuditController
+IngressService::TradeServiceClient ..> TradeService::CacheController
+
+' Trade Service relationships
+TradeService::TradeController --> TradeService::TradeCommandService
+TradeService::TradeController --> TradeService::TradeQueryService
+TradeService::AuditController --> TradeService::TradeAuditLogRepository
+TradeService::CacheController --> TradeService::CacheService
+
+TradeService::TradeCommandService --> TradeService::TradeRepository
+TradeService::TradeCommandService --> TradeService::TradeAuditLogRepository
+TradeService::TradeQueryService --> TradeService::TradeRepository
+
+TradeService::TradeCommandService --> TradeService::CacheService
+TradeService::TradeCommandService --> TradeService::TradeEventProducer
+TradeService::TradeExpirationScheduler --> TradeService::TradeCommandService
+
+TradeService::TradeRepository ..> TradeService::Trade
+TradeService::TradeAuditLogRepository ..> TradeService::TradeAuditLog
+TradeService::TradeCommandService ..> TradeService::Trade
+TradeService::TradeCommandService ..> TradeService::TradeAuditLog
+TradeService::TradeQueryService ..> TradeService::Trade
+
+TradeService::TradeController ..> TradeService::TradeDto
+TradeService::TradeController ..> TradeService::TradeSubmissionResponse
+TradeService::TradeController ..> TradeService::TradeQueryResponse
+TradeService::AuditController ..> TradeService::AuditDto
+
+@enduml
+
