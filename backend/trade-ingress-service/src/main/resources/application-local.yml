@@ -8,6 +8,6 @@ api:
     cache: ${API_PATH_CACHE:/api/trades/cache}
     audit: ${API_PATH_AUDIT:/api/audit}
 
-cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+# Note: CORS is handled at the Gateway level (port 8090)
+# No CORS configuration needed here since all requests go through gateway
 

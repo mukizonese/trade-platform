@@ -3,6 +3,8 @@ package com.tradeplatform.tradeingress.client;
 import com.tradeplatform.common.dto.TradeDto;
 import com.tradeplatform.common.dto.TradeQueryResponse;
 import com.tradeplatform.common.dto.TradeSubmissionResponse;
+import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
@@ -21,6 +23,7 @@ import java.util.Map;
 public class TradeServiceClient {
     
     private final WebClient tradeServiceWebClient;
+    private final CircuitBreakerRegistry circuitBreakerRegistry;
     
     public Mono<TradeSubmissionResponse> submitTrade(TradeDto tradeDto, String source) {
         return tradeServiceWebClient.post()
@@ -32,7 +35,7 @@ public class TradeServiceClient {
                 .bodyValue(tradeDto)
                 .retrieve()
                 .bodyToMono(TradeSubmissionResponse.class)
-                .doOnError(error -> log.error("Error calling trade-service submitTrade", error));
+                .transformDeferred(CircuitBreakerOperator.of(circuitBreakerRegistry.circuitBreaker("tradeService")));
     }
     
     public Mono<Page<TradeQueryResponse>> getTrades(Boolean latestOnly, String tradeId, 
@@ -59,7 +62,7 @@ public class TradeServiceClient {
                 })
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<Page<TradeQueryResponse>>() {})
-                .doOnError(error -> log.error("Error calling trade-service getTrades", error));
+                .transformDeferred(CircuitBreakerOperator.of(circuitBreakerRegistry.circuitBreaker("tradeService")));
     }
     
     public Mono<List<TradeQueryResponse>> getTradeById(String tradeId, Boolean latestOnly) {

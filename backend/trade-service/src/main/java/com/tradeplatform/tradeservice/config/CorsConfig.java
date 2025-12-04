@@ -1,36 +1,29 @@
 package com.tradeplatform.tradeservice.config;
 
+import com.tradeplatform.common.config.CorsConfigUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import java.util.Arrays;
-import java.util.List;
-
+/**
+ * CORS configuration for Trade Service (servlet-based).
+ * Uses common CORS utility from trade-common-service.
+ */
 @Configuration
 public class CorsConfig {
 
-    @Value("${cors.allowed-origins}")
+    @Value("${cors.allowed-origins:http://localhost:3001}")
     private String allowedOrigins;
 
     @Bean
     public CorsFilter corsFilter() {
+        var corsConfig = CorsConfigUtil.createCorsConfiguration(allowedOrigins);
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        CorsConfiguration config = new CorsConfiguration();
+        source.registerCorsConfiguration("/**", corsConfig);
         
-        // Split comma-separated origins or use single origin
-        List<String> origins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .toList();
-        config.setAllowCredentials(true);
-        config.setAllowedOrigins(origins);
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
-        
-        source.registerCorsConfiguration("/**", config);
         return new CorsFilter(source);
     }
 }

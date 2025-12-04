@@ -14,15 +14,21 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,circuitbreakers,ratelimiters
   endpoint:
     health:
       show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
 
 logging:
   level:
     root: WARN
     org.springframework.web: WARN
+    org.springframework.web.servlet.resource.NoResourceFoundException: OFF
     org.springframework.boot: WARN
     com.tradeplatform: INFO
   pattern:
@@ -33,4 +39,19 @@ api:
     trades: ${API_PATH_TRADES:/api/trades}
     cache: ${API_PATH_CACHE:/api/trades/cache}
     audit: ${API_PATH_AUDIT:/api/audit}
+
+resilience4j:
+  ratelimiter:
+    instances:
+      submitTrade:
+        limitForPeriod: ${RATE_LIMIT_LIMIT_FOR_PERIOD}
+        limitRefreshPeriod: ${RATE_LIMIT_REFRESH_PERIOD}
+        registerHealthIndicator: true
+  circuitbreaker:
+    instances:
+      tradeService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
 

@@ -9,7 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,11 +33,7 @@ public class TradeController {
         
         TradeSubmissionResponse response = commandService.submitTrade(tradeDto, source);
         
-        HttpStatus status = "ACCEPTED".equals(response.getStatus()) 
-                ? HttpStatus.OK 
-                : HttpStatus.BAD_REQUEST;
-        
-        return ResponseEntity.status(status).body(response);
+        return ResponseEntity.ok(response);
     }
     
     @GetMapping

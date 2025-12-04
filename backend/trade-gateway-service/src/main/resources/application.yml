@@ -17,58 +17,60 @@ spring:
           max-life-time: 60s
           evict-in-background: true
         compression: true
-      # Prevent forwarded header accumulation
       forward-headers-strategy: native
       routes:
-        # Trade Ingress Service Routes (Input APIs)
+        - id: trade-ingress-trades-post
+          uri: ${GATEWAY_TRADE_INGRESS_URL}
+          predicates:
+            - Path=${GATEWAY_PATH_TRADES:/api/trades}
+            - Method=POST
+          filters:
+            - StripPrefix=0
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE}
+                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY}
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@ipKeyResolver}"
         - id: trade-ingress-trades
-          uri: ${GATEWAY_TRADE_INGRESS_URL:http://localhost:8091}
+          uri: ${GATEWAY_TRADE_INGRESS_URL}
           predicates:
             - Path=${GATEWAY_PATH_TRADES:/api/trades}/**
           filters:
             - StripPrefix=0
         
         - id: trade-ingress-cache
-          uri: ${GATEWAY_TRADE_INGRESS_URL:http://localhost:8091}
+          uri: ${GATEWAY_TRADE_INGRESS_URL}
           predicates:
             - Path=${GATEWAY_PATH_TRADES_CACHE:/api/trades/cache}/**
           filters:
             - StripPrefix=0
         
         - id: trade-ingress-audit
-          uri: ${GATEWAY_TRADE_INGRESS_URL:http://localhost:8091}
+          uri: ${GATEWAY_TRADE_INGRESS_URL}
           predicates:
             - Path=${GATEWAY_PATH_AUDIT:/api/audit}/**
           filters:
             - StripPrefix=0
+    discovery:
+      client:
+        composite-indicator:
+          enabled: false
+        health-indicator:
+          enabled: false
         
-       
-        # Trade Auth Service Routes (Future)
-        - id: trade-auth
-          uri: ${GATEWAY_TRADE_AUTH_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=0
-        
-        # # Trade Analytics Service Routes (Future)
-        # - id: trade-analytics
-        #   uri: ${GATEWAY_TRADE_ANALYTICS_URL:http://localhost:8083}
-        #   predicates:
-        #     - Path=/api/analytics/**
-        #   filters:
-        #     - StripPrefix=0
-        
-        # # Trade AI Service Routes (Future)
-        # - id: trade-ai
-        #   uri: ${GATEWAY_TRADE_AI_URL:http://localhost:8084}
-        #   predicates:
-        #     - Path=/api/ai/**
-        #   filters:
-        #     - StripPrefix=0
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT}
+      password: ${REDIS_PASSWORD}
+      timeout: 2000ms
 
 server:
   port: ${GATEWAY_PORT:8085}
+
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS}
 
 management:
   endpoints:
@@ -78,6 +80,9 @@ management:
   endpoint:
     health:
       show-details: always
+  health:
+    redis:
+      enabled: true
 
 logging:
   level:
@@ -86,6 +91,7 @@ logging:
     org.springframework.web: WARN
     org.springframework.boot: WARN
     com.tradeplatform: INFO
+    com.tradeplatform.tradegateway: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
 
