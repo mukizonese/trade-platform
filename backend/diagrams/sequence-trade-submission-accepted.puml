@@ -1,0 +1,124 @@
+@startuml Trade Submission - Accepted
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+
+actor Client
+participant GatewayService
+participant IngressService
+participant TradeController
+participant TradeCommandService
+participant TradeRepository
+participant TradeAuditLogRepository
+participant CacheService
+participant TradeEventProducer
+database Redis
+database MySQL
+database MongoDB
+queue Kafka
+
+Client -> GatewayService: POST /api/trades\n(TradeDto, source)
+activate GatewayService
+
+GatewayService -> GatewayService: Rate limit check
+activate GatewayService
+GatewayService -> Redis: Check rate limit
+Redis --> GatewayService: Rate limit status
+deactivate GatewayService
+
+GatewayService -> IngressService: Route request
+activate IngressService
+
+IngressService -> IngressService: Circuit breaker check
+activate IngressService
+deactivate IngressService
+
+IngressService -> TradeController: POST /api/trades\n(TradeDto, source)
+activate TradeController
+
+TradeController -> TradeCommandService: submitTrade(tradeDto, source)
+activate TradeCommandService
+
+TradeCommandService -> TradeCommandService: isPastMaturity(maturityDate)
+activate TradeCommandService
+deactivate TradeCommandService
+
+TradeCommandService -> TradeRepository: findMaxVersionByTradeId(tradeId)
+activate TradeRepository
+TradeRepository -> MySQL: SELECT MAX(version)
+MySQL --> TradeRepository: maxVersion
+TradeRepository --> TradeCommandService: Optional<Integer>
+deactivate TradeRepository
+
+alt Version is valid (new or higher)
+    TradeCommandService -> TradeCommandService: handleAcceptance(tradeDto, source)
+    activate TradeCommandService
+    
+    TradeCommandService -> TradeRepository: findByTradeIdAndVersion(tradeId, version)
+    activate TradeRepository
+    TradeRepository -> MySQL: SELECT by tradeId and version
+    MySQL --> TradeRepository: Optional<Trade>
+    TradeRepository --> TradeCommandService: Optional<Trade>
+    deactivate TradeRepository
+    
+    alt Trade exists (update)
+        TradeCommandService -> TradeCommandService: Update existing Trade entity
+    else Trade does not exist (create)
+        TradeCommandService -> TradeCommandService: Create new Trade entity
+    end
+    
+    TradeCommandService -> TradeRepository: save(trade)
+    activate TradeRepository
+    TradeRepository -> MySQL: INSERT/UPDATE trade
+    MySQL --> TradeRepository: Trade
+    TradeRepository --> TradeCommandService: Trade
+    deactivate TradeRepository
+    
+    TradeCommandService -> TradeCommandService: createAuditLog(...)
+    activate TradeCommandService
+    TradeCommandService -> TradeAuditLogRepository: save(auditLog)
+    activate TradeAuditLogRepository
+    TradeAuditLogRepository -> MongoDB: INSERT audit log
+    MongoDB --> TradeAuditLogRepository: TradeAuditLog
+    TradeAuditLogRepository --> TradeCommandService: TradeAuditLog
+    deactivate TradeAuditLogRepository
+    deactivate TradeCommandService
+    
+    TradeCommandService -> CacheService: setLatestTrade(tradeId, tradeMap)
+    activate CacheService
+    CacheService -> Redis: SET trade:latest:{tradeId}
+    Redis --> CacheService: OK
+    deactivate CacheService
+    
+    TradeCommandService -> CacheService: setTrade(tradeId, version, tradeMap)
+    activate CacheService
+    CacheService -> Redis: SET trade:{tradeId}:{version}
+    Redis --> CacheService: OK
+    deactivate CacheService
+    
+    TradeCommandService -> TradeEventProducer: sendTradeEvent(TRADE_ACCEPTED, ...)
+    activate TradeEventProducer
+    TradeEventProducer -> Kafka: PUBLISH to trade-reports topic
+    Kafka --> TradeEventProducer: ACK
+    deactivate TradeEventProducer
+    
+    TradeCommandService -> TradeCommandService: Build TradeSubmissionResponse
+    deactivate TradeCommandService
+end
+
+TradeCommandService --> TradeController: TradeSubmissionResponse
+deactivate TradeCommandService
+
+TradeController --> IngressService: TradeSubmissionResponse
+deactivate TradeController
+
+IngressService --> GatewayService: TradeSubmissionResponse
+deactivate IngressService
+
+GatewayService --> Client: 200 OK\nTradeSubmissionResponse
+deactivate GatewayService
+
+@enduml
+
