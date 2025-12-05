@@ -8,6 +8,7 @@ skinparam sequenceArrowThickness 2
 actor Client
 participant GatewayService
 participant IngressService
+participant Nginx
 participant CacheController
 participant CacheService
 database Redis
@@ -22,7 +23,10 @@ IngressService -> IngressService: Circuit breaker check
 activate IngressService
 deactivate IngressService
 
-IngressService -> CacheController: GET /api/trades/cache/{tradeId}
+IngressService -> Nginx: GET /api/trades/cache/{tradeId}
+activate Nginx
+
+Nginx -> CacheController: GET /api/trades/cache/{tradeId}
 activate CacheController
 
 CacheController -> CacheService: getTradesByTradeId(tradeId)
@@ -45,8 +49,11 @@ deactivate CacheService
 CacheService --> CacheController: List<Map<String, Object>>
 deactivate CacheService
 
-CacheController --> IngressService: List<Map<String, Object>>
+CacheController --> Nginx: List<Map<String, Object>>
 deactivate CacheController
+
+Nginx --> IngressService: List<Map<String, Object>>
+deactivate Nginx
 
 IngressService --> GatewayService: List<Map<String, Object>>
 deactivate IngressService

@@ -18,6 +18,8 @@ rectangle "Application Tier" {
   [Ingress Service\nInstance 2] as Ingress2
   [Ingress Service\nInstance N] as IngressN
   
+  [Nginx Load Balancer] as Nginx
+  
   [Trade Service\nInstance 1] as Trade1
   [Trade Service\nInstance 2] as Trade2
   [Trade Service\nInstance N] as TradeN
@@ -50,10 +52,14 @@ Gateway1 --> Ingress2 : HTTP
 Gateway2 --> Ingress1 : HTTP
 Gateway2 --> Ingress2 : HTTP
 
-Ingress1 --> Trade1 : HTTP
-Ingress1 --> Trade2 : HTTP
-Ingress2 --> Trade1 : HTTP
-Ingress2 --> Trade2 : HTTP
+Ingress1 --> Nginx : HTTP
+Ingress1 --> Nginx : HTTP
+Ingress2 --> Nginx : HTTP
+Ingress2 --> Nginx : HTTP
+
+Nginx --> Trade1 : HTTP
+Nginx --> Trade2 : HTTP
+Nginx --> TradeN : HTTP
 
 Trade1 --> MySQLPrimary
 Trade1 --> MongoDB
