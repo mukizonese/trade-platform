@@ -1,0 +1,36 @@
+# Maven
+target
+!trade-service/target
+!trade-gateway-service/target
+!trade-ingress-service/target
+!trade-common-service/target
+
+# IDE
+.idea
+.vscode
+*.iml
+*.swp
+*.swo
+*~
+
+# Misc
+.DS_Store
+*.log
+.env*.local
+
+# Git
+.git
+.gitignore
+README.md
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Documentation
+*.md
+docs/
+
+# Test files
+**/src/test/**
+
