@@ -14,7 +14,7 @@
    # Edit .env.docker-local with your configuration
    
 2. **Start all docker services with Docker Compose**
-   docker-compose -f docker-compose.docker-local.yml --env-file .env.docker-local --profile docker-local up -d
+   docker-compose -f docker-compose.docker-local.core.yml --env-file .env.docker-local --profile docker-local up -d
 
 ### Local Setup
 
@@ -22,17 +22,11 @@
    cp env.local.template .env.local
    # Edit .env.docker-local with your configuration
    
-2. **Start the backend service** 
-   cd backend/trade-service
-   set -a
-   source /Users/muki-dev/Projects/eclipse-workspace/trade-platform/.env.local
-   set +a
+2. **Start the service** 
+   # cd to root directory
+   ./run-local.sh [build | start | stop | restart| logs] [gateway | ingress | trade | ui]
    
-   cd backend/trade-service
-   mvn spring-boot:run -Dspring-boot.run.profiles=local
    
-   Backend will be available at http://localhost:8088
-
      
 ### Docker Local Setup
 
@@ -41,14 +35,8 @@
    # Edit .env.docker-local with your configuration
    
   
-2. **Start the backend service** 
-   cd backend/trade-service
-   set -a
-   source /Users/muki-dev/Projects/eclipse-workspace/trade-platform/.env.docker-local
-   set +a
-   
-   cd backend/trade-service
-   mvn spring-boot:run -Dspring-boot.run.profiles=docker-local
-   ```
+2. **Start the service** 
+   # cd to root directory
+   ./run-docker-local.sh [build | start | stop | restart| logs] [gateway | ingress | trade | nginx | ui]
    
    

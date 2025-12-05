@@ -182,10 +182,20 @@ public class CacheService {
         
         return trades.stream()
                 .sorted((t1, t2) -> {
+
+                    
+                    // First try epoch millis
+                    Long e1 = (Long) t1.get("lastUpdatedAtEpoch");
+                    Long e2 = (Long) t2.get("lastUpdatedAtEpoch");
+
+                    if (e1 != null && e2 != null) {
+                        return e2.compareTo(e1);
+                    }
+                    
                     String lastUpdated1 = (String) t1.get("lastUpdatedAt");
                     String lastUpdated2 = (String) t2.get("lastUpdatedAt");
                     
-                    // Handle null values - put them at the end
+                    // Fallback to the old string parsing for backward compatibility
                     if (lastUpdated1 == null && lastUpdated2 == null) {
                         return 0;
                     }

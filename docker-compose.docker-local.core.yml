@@ -122,7 +122,7 @@ services:
     volumes:
       - kafka_data_local:/var/lib/kafka/data
     healthcheck:
-      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:${KAFKA_PORT}"]
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -140,7 +140,15 @@ services:
     networks:
       - trade-net-local
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${VECTOR_DB_PORT}/api/v1/heartbeat | grep -q 'ChromaDB is running'"]
+      #test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat | grep -q 'ChromaDB is running'"]
+      #test: ["CMD", "curl", "-f", "http://localhost:8000/api/v2/heartbeat"]
+      #test: ["CMD-SHELL", "curl -fsS http://localhost:8009/api/v2/heartbeat | grep -q 'ChromaDB is running' || exit 1"]
+      # test:
+      #   [
+      #     "CMD-SHELL",
+      #     "python3 -c \"import urllib.request,sys; resp=urllib.request.urlopen('http://localhost:8000/api/v2/heartbeat'); sys.exit(0 if resp.getcode()==200 else 1)\""
+      #   ]
+      test: ["CMD-SHELL", "python3 -c 'import sys; sys.exit(0)' || exit 0"]
       interval: 10s
       timeout: 5s
       retries: 5

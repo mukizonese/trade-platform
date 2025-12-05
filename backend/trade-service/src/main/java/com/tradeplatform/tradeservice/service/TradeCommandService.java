@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 @Service
 @Slf4j
@@ -235,7 +237,15 @@ public class TradeCommandService {
         map.put("createdDate", trade.getCreatedDate() != null ? trade.getCreatedDate().format(DATETIME_FORMATTER) : null);
         map.put("expired", trade.getExpired());
         map.put("status", trade.getStatus());
-        map.put("lastUpdatedAt", trade.getLastUpdatedAt() != null ? trade.getLastUpdatedAt().format(DATETIME_FORMATTER) : null);
+        //map.put("lastUpdatedAt", trade.getLastUpdatedAt() != null ? trade.getLastUpdatedAt().format(DATETIME_FORMATTER) : null);
+        if (trade.getLastUpdatedAt() != null) {
+            Instant instant = trade.getLastUpdatedAt().toInstant(ZoneOffset.UTC);
+            map.put("lastUpdatedAt", trade.getLastUpdatedAt().format(DATETIME_FORMATTER)); // for UI
+            map.put("lastUpdatedAtEpoch", instant.toEpochMilli());                        // for sort
+        } else {
+            map.put("lastUpdatedAt", null);
+            map.put("lastUpdatedAtEpoch", null);
+        }
         return map;
     }
     
