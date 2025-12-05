@@ -18,6 +18,10 @@ import java.util.List;
 @Order(1) // Execute early in the filter chain
 @RequiredArgsConstructor
 @Slf4j
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(
+        name = "security.enforce-gateway-only",
+        havingValue = "true",
+        matchIfMissing = false)
 public class IpWhitelistFilter extends OncePerRequestFilter {
     
     private final SecurityConfig securityConfig;

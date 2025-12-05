@@ -95,7 +95,7 @@ build_service() {
     echo "Building $service_name..."
     echo "=========================================="
     cd "$service_dir"
-    mvn clean install -DskipTests -Ddependency-check.skip=true
+    mvn clean install -Ddependency-check.skip=true
     if [ $? -ne 0 ]; then
         echo "Error: Failed to build $service_name"
         exit 1

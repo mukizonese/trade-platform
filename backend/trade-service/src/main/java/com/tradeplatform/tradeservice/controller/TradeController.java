@@ -33,6 +33,10 @@ public class TradeController {
         
         TradeSubmissionResponse response = commandService.submitTrade(tradeDto, source);
         
+        if ("REJECTED".equals(response.getStatus())) {
+            return ResponseEntity.badRequest().body(response);
+        }
+        
         return ResponseEntity.ok(response);
     }
     

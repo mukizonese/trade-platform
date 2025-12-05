@@ -4,10 +4,15 @@ import com.tradeplatform.tradeservice.service.CacheService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.mongo.MongoRepositoriesAutoConfiguration;
 import org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
+import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
+import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.*;
@@ -17,8 +22,19 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(value = CacheController.class,
-        excludeAutoConfiguration = {MongoAutoConfiguration.class, MongoDataAutoConfiguration.class})
+        excludeAutoConfiguration = {
+                MongoAutoConfiguration.class, 
+                MongoDataAutoConfiguration.class,
+                MongoRepositoriesAutoConfiguration.class,
+                DataSourceAutoConfiguration.class,
+                HibernateJpaAutoConfiguration.class,
+                JpaRepositoriesAutoConfiguration.class
+        })
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "spring.data.mongodb.repositories.enabled=false",
+        "spring.jpa.repositories.enabled=false"
+})
 class CacheControllerTest {
     
     @Autowired
