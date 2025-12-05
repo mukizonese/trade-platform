@@ -280,7 +280,7 @@ export default function SimulatorTab() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Left Pane - Trade Form */}
       <Card className="lg:col-span-1">
         <CardHeader>
@@ -389,7 +389,7 @@ export default function SimulatorTab() {
       </Card>
 
       {/* Right Pane - Trades List */}
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-3">
         <CardHeader>
           <CardTitle>Trades from Cache</CardTitle>
           <CardDescription>All trades cached in Redis (refreshes every 5 seconds)</CardDescription>
