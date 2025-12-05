@@ -7,6 +7,7 @@ rectangle "Web / UI Layer" {
 rectangle "Backend Services (Spring Boot)" {
   component "Gateway Service\n(Spring Cloud Gateway)" as GatewaySvc
   component "Ingress Service\n(Resilience Patterns)" as IngressSvc
+  node "Nginx\n(Load Balancer)" as Nginx
   component "Trade Service\n(Business Logic)" as TradeSvc
 }
 rectangle "Infrastructure" {
@@ -25,7 +26,8 @@ rectangle "Data Lake / Analytics" {
 Trader --> UI: HTTP(S)
 UI --> GatewaySvc: REST / JSON
 GatewaySvc --> IngressSvc: Route requests\nRate limiting
-IngressSvc --> TradeSvc: Circuit breaker\nResilience
+IngressSvc --> Nginx: Circuit breaker\nResilience
+Nginx --> TradeSvc: Load balance\nReverse proxy
 TradeSvc --> MySQL : CRUD trades
 TradeSvc --> Redis : Cache lookups
 TradeSvc --> Kafka : Publish trade events

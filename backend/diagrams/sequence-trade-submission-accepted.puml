@@ -8,6 +8,7 @@ skinparam sequenceArrowThickness 2
 actor Client
 participant GatewayService
 participant IngressService
+participant Nginx
 participant TradeController
 participant TradeCommandService
 participant TradeRepository
@@ -35,7 +36,10 @@ IngressService -> IngressService: Circuit breaker check
 activate IngressService
 deactivate IngressService
 
-IngressService -> TradeController: POST /api/trades\n(TradeDto, source)
+IngressService -> Nginx: POST /api/trades\n(TradeDto, source)
+activate Nginx
+
+Nginx -> TradeController: POST /api/trades\n(TradeDto, source)
 activate TradeController
 
 TradeController -> TradeCommandService: submitTrade(tradeDto, source)
@@ -111,8 +115,11 @@ end
 TradeCommandService --> TradeController: TradeSubmissionResponse
 deactivate TradeCommandService
 
-TradeController --> IngressService: TradeSubmissionResponse
+TradeController --> Nginx: TradeSubmissionResponse
 deactivate TradeController
+
+Nginx --> IngressService: TradeSubmissionResponse
+deactivate Nginx
 
 IngressService --> GatewayService: TradeSubmissionResponse
 deactivate IngressService

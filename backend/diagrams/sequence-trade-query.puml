@@ -8,6 +8,7 @@ skinparam sequenceArrowThickness 2
 actor Client
 participant GatewayService
 participant IngressService
+participant Nginx
 participant TradeController
 participant TradeQueryService
 participant TradeRepository
@@ -23,7 +24,10 @@ IngressService -> IngressService: Circuit breaker check
 activate IngressService
 deactivate IngressService
 
-IngressService -> TradeController: GET /api/trades\n?latestOnly=true&tradeId=T1
+IngressService -> Nginx: GET /api/trades\n?latestOnly=true&tradeId=T1
+activate Nginx
+
+Nginx -> TradeController: GET /api/trades\n?latestOnly=true&tradeId=T1
 activate TradeController
 
 TradeController -> TradeQueryService: getTrades(latestOnly, tradeId, ...)
@@ -66,8 +70,11 @@ deactivate TradeQueryService
 TradeQueryService --> TradeController: Page<TradeQueryResponse>
 deactivate TradeQueryService
 
-TradeController --> IngressService: Page<TradeQueryResponse>
+TradeController --> Nginx: Page<TradeQueryResponse>
 deactivate TradeController
+
+Nginx --> IngressService: Page<TradeQueryResponse>
+deactivate Nginx
 
 IngressService --> GatewayService: Page<TradeQueryResponse>
 deactivate IngressService

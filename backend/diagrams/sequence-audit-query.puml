@@ -8,6 +8,7 @@ skinparam sequenceArrowThickness 2
 actor Client
 participant GatewayService
 participant IngressService
+participant Nginx
 participant AuditController
 participant TradeAuditLogRepository
 database MongoDB
@@ -22,7 +23,10 @@ IngressService -> IngressService: Circuit breaker check
 activate IngressService
 deactivate IngressService
 
-IngressService -> AuditController: GET /api/audit/trades\n?page=0&size=50
+IngressService -> Nginx: GET /api/audit/trades\n?page=0&size=50
+activate Nginx
+
+Nginx -> AuditController: GET /api/audit/trades\n?page=0&size=50
 activate AuditController
 
 AuditController -> TradeAuditLogRepository: findAll(pageable)\n(Sort by timestamp DESC)
@@ -41,8 +45,11 @@ loop For each audit log
     deactivate AuditController
 end
 
-AuditController --> IngressService: Page<AuditDto>
+AuditController --> Nginx: Page<AuditDto>
 deactivate AuditController
+
+Nginx --> IngressService: Page<AuditDto>
+deactivate Nginx
 
 IngressService --> GatewayService: Page<AuditDto>
 deactivate IngressService
