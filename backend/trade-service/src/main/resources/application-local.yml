@@ -78,3 +78,8 @@ trade:
         #  * - "0 */30 * * * ?" - Every 30 minutes
         #  * - "0 0 0 * * ?" - Every day at midnight
         #  * - "0 0 0 * * MON" - Every Monday at midnight
+
+logging:
+  level:
+    root: INFO
+    com.tradeplatform: INFO

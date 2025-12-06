@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS trade (
     book_id VARCHAR(255) NOT NULL,
     maturity_date DATE NOT NULL,
     created_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    expired CHAR(1) NOT NULL DEFAULT 'N',
+    expired VARCHAR(1) NOT NULL DEFAULT 'N',
     status VARCHAR(50) NOT NULL DEFAULT 'ACTIVE',
     last_updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uk_trade_id_version (trade_id, version),

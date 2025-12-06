@@ -18,6 +18,10 @@ coverage
 *.pem
 .env*.local
 
+# Exclude development env file when building production
+# Keep .env.production for production builds
+# .env.development will be excluded for production builds
+
 # IDE
 .vscode
 .idea
