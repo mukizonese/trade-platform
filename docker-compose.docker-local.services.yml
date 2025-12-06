@@ -23,7 +23,7 @@ services:
     networks:
       - trade-net-local
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8092/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8093/actuator/health || exit 1"]
       interval: 30s
       timeout: 3s
       start_period: 40s
@@ -52,8 +52,8 @@ services:
       # start_period gives nginx time to start and trade-service to be ready
       test: ["CMD-SHELL", "curl -f -s http://localhost/actuator/health > /dev/null || exit 1"]
       interval: 10s
-      timeout: 5s
-      start_period: 20s
+      timeout: 10s
+      start_period: 30s
       retries: 5
     restart: unless-stopped
 
@@ -61,6 +61,7 @@ services:
     build:
       context: ./backend
       dockerfile: trade-ingress-service/Dockerfile
+    container_name: trade-ingress-service-local
     profiles:
       - docker-local
     env_file:
@@ -74,11 +75,11 @@ services:
       nginx-trade-service:
         condition: service_healthy
     ports:
-      - "${INGRESS_PORT:-8091}:8091"
+      - "${INGRESS_PORT:-8092}:8092"
     networks:
       - trade-net-local
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8091/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8092/actuator/health || exit 1"]
       interval: 30s
       timeout: 3s
       start_period: 40s
@@ -91,6 +92,7 @@ services:
     build:
       context: ./backend
       dockerfile: trade-gateway-service/Dockerfile
+    container_name: trade-gateway-service-local
     profiles:
       - docker-local
     env_file:
@@ -104,11 +106,11 @@ services:
       trade-ingress-service:
         condition: service_healthy      
     ports:
-      - "${GATEWAY_PORT:-8090}:8090"
+      - "${GATEWAY_PORT:-8091}:8091"
     networks:
       - trade-net-local
     healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8090/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8091/actuator/health || exit 1"]
       interval: 30s
       timeout: 3s
       start_period: 40s
@@ -120,7 +122,7 @@ services:
   trade-ui:
     build:
       context: ./frontend/trade-ui
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: trade-ui-local
     profiles:
       - docker-local
@@ -135,7 +137,7 @@ services:
         condition: service_healthy     
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8090}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8091}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     networks:
@@ -150,5 +152,6 @@ services:
 
 networks:
   trade-net-local:
-    driver: bridge
+    external: true
+    name: trade-platform-docker-local_trade-net-local
 

@@ -56,7 +56,7 @@ cors:
 trade:
   kafka:
     topics:
-      trade-reports: ${KAFKA_TOPIC_TRADE_REPORTS:trade-reports}
+      trade-reports: ${KAFKA_TOPIC_TRADE_REPORTS}
   
   vector-db:
     host: ${VECTOR_DB_HOST}
@@ -74,3 +74,7 @@ trade:
     expiration:
       cron: ${TRADE_EXPIRATION_CRON:0 0 * * * ?}  # Default: every hour at the top of the hour
 
+logging:
+  level:
+    root: INFO
+    com.tradeplatform: INFO

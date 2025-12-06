@@ -1,0 +1,119 @@
+name: trade-platform-docker-prod
+
+services:
+  trade-service:
+    image: ${ECR_REPO_URL}/${ECR_REPO_NAME}/trade-service:${IMAGE_TAG:-latest}
+    # container_name removed to allow scaling - Docker Compose will auto-generate names like trade-platform-docker-prod-trade-service-1, trade-platform-docker-prod-trade-service-2, etc.
+    profiles:
+      - docker-prod
+    env_file:
+      - .env.docker-prod
+    environment:
+      TZ: UTC
+      MYSQL_PORT: 3306
+      MONGO_PORT: 27017
+      REDIS_PORT: 6379
+      VECTOR_DB_PORT: 8000
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29093
+    # Ports removed to allow scaling - access via ingress service (http://trade-service:8093) or gateway
+    # For direct access, use: docker exec -it <container-name> or access via ingress:8092/gateway:8091
+    # Note: Core services (mysql, mongo, redis, kafka) are managed separately and must be running
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8093/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: always
+    deploy:
+      replicas: 1
+
+  trade-ingress-service:
+    image: ${ECR_REPO_URL}/${ECR_REPO_NAME}/trade-ingress-service:${IMAGE_TAG:-latest}
+    container_name: trade-ingress-service-prod
+    profiles:
+      - docker-prod
+    env_file:
+      - .env.docker-prod
+    environment:
+      REDIS_PORT: 6379
+      TRADE_SERVICE_URL: http://trade-service:8093
+    depends_on:
+      trade-service:
+        condition: service_healthy
+    ports:
+      - "${INGRESS_PORT:-8092}:8092"
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8092/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: always
+    deploy:
+      replicas: 1
+
+  trade-gateway-service:
+    image: ${ECR_REPO_URL}/${ECR_REPO_NAME}/trade-gateway-service:${IMAGE_TAG:-latest}
+    container_name: trade-gateway-service-prod
+    profiles:
+      - docker-prod
+    env_file:
+      - .env.docker-prod
+    environment:
+      REDIS_PORT: 6379
+    depends_on:
+      trade-service:
+        condition: service_healthy
+      trade-ingress-service:
+        condition: service_healthy
+    ports:
+      - "${GATEWAY_PORT:-8091}:8091"
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8091/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: always
+    deploy:
+      replicas: 1
+
+  trade-ui:
+    image: ${ECR_REPO_URL}/${ECR_REPO_NAME}/trade-ui:${IMAGE_TAG:-latest}
+    container_name: trade-ui-prod
+    profiles:
+      - docker-prod
+    env_file:
+      - .env.docker-prod
+    depends_on:
+      trade-gateway-service:
+        condition: service_healthy
+      trade-ingress-service:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-https://trade.platform.mukizone.com}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 10s
+      retries: 3
+    restart: always
+
+networks:
+  trade-net-prod:
+    external: true
+    name: trade-platform-docker-prod_trade-net-prod
+

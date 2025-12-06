@@ -1,0 +1,64 @@
+# Production Dockerfile for Trade UI
+# This Dockerfile uses .env.production for build-time environment variables
+
+# Build stage
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# Copy package files first
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies for build)
+# npm ci installs all dependencies by default (including devDependencies)
+# We need devDependencies for the build process
+RUN npm ci
+
+# Copy source code and environment files
+COPY . .
+
+# Ensure .env.production exists
+RUN if [ ! -f .env.production ]; then \
+      echo "Warning: .env.production not found!"; \
+    fi
+
+# Set NODE_ENV to production BEFORE build
+# This ensures Next.js uses .env.production during build
+ENV NODE_ENV=production
+
+# Build the application (Next.js will use .env.production automatically)
+RUN npm run build
+
+# Production stage - use only production dependencies
+FROM node:20-alpine AS runner
+
+# Install wget for health checks
+RUN apk add --no-cache wget
+
+WORKDIR /app
+
+# Set production environment
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Copy package files
+COPY --from=builder /app/package*.json ./
+
+# Install only production dependencies (excludes devDependencies)
+# This significantly reduces image size by excluding dev tools
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built application and public assets
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000} || exit 1
+
+# Run the application
+CMD ["npm", "start"]
+

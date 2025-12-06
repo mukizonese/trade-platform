@@ -1,0 +1,144 @@
+name: trade-platform-docker-prod
+
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: trade-mysql-prod
+    profiles:
+      - docker-prod
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USERNAME}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "${MYSQL_PORT}:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+      - ./conf.d:/etc/mysql/conf.d:ro
+      - ./infra/db-init-scripts:/docker-entrypoint-initdb.d
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p${MYSQL_ROOT_PASSWORD} | grep -q 'mysqld is alive'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  mongo:
+    image: mongo:7.0
+    container_name: trade-mongo-prod
+    profiles:
+      - docker-prod
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    ports:
+      - "${MONGO_PORT}:27017"
+    volumes:
+      - mongo_data_prod:/data/db
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  redis:
+    image: redis/redis-stack:latest
+    container_name: trade-redis-prod
+    profiles:
+      - docker-prod
+    ports:
+      - "${REDIS_PORT}:6379"
+      - "${REDIS_PORT_GUI}:8001"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_ARGS: >-
+        --requirepass ${REDIS_PASSWORD}
+        --dir /data
+        --appendonly yes
+        --appendfsync everysec
+        --save 3600 1
+        --save 300 100
+        --save 60 10000
+    volumes:
+      - redis_data_prod:/data
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD} ping | grep PONG" ]
+      interval: 30s
+      timeout: 10s
+    restart: always
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.0
+    container_name: trade-zookeeper-prod
+    profiles:
+      - docker-prod
+    environment:
+      ZOOKEEPER_CLIENT_PORT: ${ZOOKEEPER_PORT}
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "${ZOOKEEPER_PORT}:2181"
+    volumes:
+      - zookeeper_data_prod:/var/lib/zookeeper/data
+      - zookeeper_logs_prod:/var/lib/zookeeper/log
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: nc -z localhost ${ZOOKEEPER_PORT} || exit -1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: trade-kafka-prod
+    profiles:
+      - docker-prod
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:${ZOOKEEPER_PORT}
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:${KAFKA_INTERNAL_PORT},PLAINTEXT_HOST://localhost:${KAFKA_PORT}
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_HEAP_OPTS: "-Xmx10g"
+    ports:
+      - "${KAFKA_PORT}:9092"
+    networks:
+      - trade-net-prod
+    volumes:
+      - kafka_data_prod:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:${KAFKA_PORT}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
+volumes:
+  mysql_data_prod:
+  mongo_data_prod:
+  redis_data_prod:
+  zookeeper_data_prod:
+  zookeeper_logs_prod:
+  kafka_data_prod:
+
+networks:
+  trade-net-prod:
+    external: true
+    name: trade-platform-docker-prod_trade-net-prod
+
