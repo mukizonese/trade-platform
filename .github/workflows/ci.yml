@@ -41,6 +41,10 @@ jobs:
             echo "⚠️ OWASP database not found in cache"
           fi
       
+      - name: Install all modules (build parent and dependencies)
+        working-directory: ./backend
+        run: mvn clean install -DskipTests -Ddependency-check.skip=true
+      
       - name: Run OWASP Dependency Check
         id: owasp-scan
         working-directory: ./backend/trade-service
@@ -148,6 +152,10 @@ jobs:
           distribution: 'temurin'
           cache: maven
       
+      - name: Install all modules (build parent and dependencies)
+        working-directory: ./backend
+        run: mvn clean install -DskipTests -Ddependency-check.skip=true
+      
       - name: Run unit tests
         working-directory: ./backend/trade-service
         run: mvn clean test -Dtest=*Test
@@ -238,7 +246,7 @@ jobs:
       
       - name: Build application
         working-directory: ./backend/trade-service
-        run: mvn clean package -DskipTests
+        run: mvn clean package -DskipTests -Ddependency-check.skip=true
         env:
           MYSQL_HOST: localhost
           MYSQL_PORT: 3306

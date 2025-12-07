@@ -116,4 +116,3 @@ networks:
   trade-net-prod:
     external: true
     name: trade-platform-docker-prod_trade-net-prod
-

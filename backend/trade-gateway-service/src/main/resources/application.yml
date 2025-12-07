@@ -24,14 +24,14 @@ spring:
           predicates:
             - Path=${GATEWAY_PATH_TRADES:/api/trades}
             - Method=POST
-          filters:
-            - StripPrefix=0
-            - name: RequestRateLimiter
-              args:
-                redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE}
-                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY}
-                redis-rate-limiter.requestedTokens: 1
-                key-resolver: "#{@ipKeyResolver}"
+#          filters:
+#            - StripPrefix=0
+#            - name: RequestRateLimiter
+#              args:
+#                redis-rate-limiter.replenishRate: ${RATE_LIMIT_REPLENISH_RATE}
+#                redis-rate-limiter.burstCapacity: ${RATE_LIMIT_BURST_CAPACITY}
+#                redis-rate-limiter.requestedTokens: 1
+#                key-resolver: "#{@ipKeyResolver}"
         - id: trade-ingress-trades
           uri: ${GATEWAY_TRADE_INGRESS_URL}
           predicates:
