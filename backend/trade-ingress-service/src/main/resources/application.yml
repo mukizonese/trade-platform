@@ -51,7 +51,7 @@ resilience4j:
     instances:
       tradeService:
         registerHealthIndicator: true
-        slidingWindowSize: 10
-        failureRateThreshold: 50
-        waitDurationInOpenState: 10s
+        slidingWindowSize: ${CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE}
+        failureRateThreshold: ${CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD}
+        waitDurationInOpenState: ${CIRCUIT_BREAKER_WAIT_DURATION_IN_OPEN_STATE}
 

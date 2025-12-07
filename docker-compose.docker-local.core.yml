@@ -64,12 +64,17 @@ services:
       - "${REDIS_PORT}:6379"
       - "${REDIS_PORT_GUI}:8001"
     environment:
-      - io.lettuce.core.epoll=false
-      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_ARGS: >-
+        --requirepass ${REDIS_PASSWORD}
+        --dir /data
+        --appendonly yes
+        --appendfsync everysec
+        --save 3600 1
+        --save 300 100
+        --save 60 10000
     volumes:
       - redis_data_local:/data
-      - ./redis.conf:/usr/local/etc/redis/redis.conf
-      - ./redis-init-scripts:/redis-init:ro      
     networks:
       - trade-net-local
     healthcheck:
@@ -77,7 +82,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    command: [ "/entrypoint.sh", "./redis-stack.conf"]
     restart: unless-stopped
 
   zookeeper:
