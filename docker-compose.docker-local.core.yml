@@ -225,7 +225,7 @@ services:
     volumes:
       - grafana_data_local:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     networks:
       - trade-net-local
     depends_on:
