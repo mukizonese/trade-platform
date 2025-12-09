@@ -16,6 +16,15 @@
     <name>Trade Service</name>
     <description>Trade Platform Backend Service</description>
     
+    <properties>
+    <!-- OWASP Dependency-Check settings -->
+    <dependency-check.version>12.1.9</dependency-check.version>
+    <!-- fail build when CVSS >= 7.0 (high/critical) -->
+    <dependency-check.failBuildOnCVSS>7.0</dependency-check.failBuildOnCVSS>
+    <!-- default: do NOT skip; CI will enable the profile explicitly -->
+    <dependency-check.skip>false</dependency-check.skip>
+    </properties>
+    
     <dependencies>
         <!-- Trade Common Service -->
         <dependency>
@@ -108,39 +117,57 @@
             <plugin>
 				<artifactId>maven-resources-plugin</artifactId>
 			</plugin>
-            <!-- OWASP Dependency Check Plugin for Vulnerability Scanning -->
-            <plugin>
-                <groupId>org.owasp</groupId>
-                <artifactId>dependency-check-maven</artifactId>
-                <version>10.0.4</version>
-                <configuration>
-                    <!-- Fail build on CVSS score >= 7.0 (High/Critical) -->
-                    <failBuildOnCVSS>7.0</failBuildOnCVSS>
-                    <!-- Generate multiple report formats -->
-                    <format>ALL</format>
-                    <!-- Skip provided scope dependencies (usually not included in final artifact) -->
-                    <skipProvidedScope>true</skipProvidedScope>
-                    <!-- Include runtime scope dependencies -->
-                    <skipRuntimeScope>false</skipRuntimeScope>
-                    <!-- Suppress false positives if needed -->
-                    <suppressionFile>owasp-suppressions.xml</suppressionFile>
-                    <!-- Workaround for CVSS v4 parsing issue in OWASP 10.0.4 -->
-                    <!-- Skip NVD update to avoid 48min timeout and CVSS v4 parsing errors -->
-                    <!-- Uses cached vulnerability data (updated from previous successful runs) -->
-                    <autoUpdate>false</autoUpdate>
-                    <nvdValidForHours>999999</nvdValidForHours>
-                    <cveValidForHours>999999</cveValidForHours>
-                    <cveStartYear>2020</cveStartYear>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
         </plugins>
     </build>
+    
+    <!-- Security scan profile: runs OWASP Dependency-Check only when enabled -->
+    <profiles>
+        <profile>
+            <id>security-scan</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <version>${dependency-check.version}</version>
+                        <configuration>
+                            <!-- Fail build on high/critical -->
+                            <failBuildOnCVSS>${dependency-check.failBuildOnCVSS}</failBuildOnCVSS>
+
+                            <!-- Allow skipping via -Ddependency-check.skip=true -->
+                            <skip>${dependency-check.skip}</skip>
+
+                            <!-- Use default NVD settings; keep it simple -->
+                            <format>ALL</format>
+
+							<!-- Cache for 10 days so you don't update every run -->
+                        	<nvdValidForHours>240</nvdValidForHours>
+                        
+                            <!-- Disable analyzers we don't need -->
+                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
+
+                            <!-- No suppression file unless you actually add it -->
+                            <!--
+                            <suppressionFiles>
+                                <suppressionFile>owasp-suppressions.xml</suppressionFile>
+                            </suppressionFiles>
+                            -->
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>dependency-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+    
+    
 </project>
 

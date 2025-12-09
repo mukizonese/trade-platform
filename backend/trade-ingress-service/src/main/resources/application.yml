@@ -46,6 +46,7 @@ resilience4j:
       submitTrade:
         limitForPeriod: ${RATE_LIMIT_LIMIT_FOR_PERIOD}
         limitRefreshPeriod: ${RATE_LIMIT_REFRESH_PERIOD}
+        timeoutDuration: 0
         registerHealthIndicator: true
   circuitbreaker:
     instances:

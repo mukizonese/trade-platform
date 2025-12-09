@@ -60,7 +60,7 @@ class TradeCommandServiceTest {
         when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> invocation.getArgument(0));
         
         // When
-        TradeSubmissionResponse response = commandService.submitTrade(validTradeDto, "UI_SIMULATOR");
+        TradeSubmissionResponse response = commandService.submitTrade(validTradeDto, "JUNIT_TEST");
         
         // Then
         assertEquals("ACCEPTED", response.getStatus());
@@ -80,7 +80,7 @@ class TradeCommandServiceTest {
         when(tradeRepository.findMaxVersionByTradeId("T1")).thenReturn(Optional.of(2));
         
         // When
-        TradeSubmissionResponse response = commandService.submitTrade(validTradeDto, "UI_SIMULATOR");
+        TradeSubmissionResponse response = commandService.submitTrade(validTradeDto, "JUNIT_TEST");
         
         // Then
         assertEquals("REJECTED", response.getStatus());
@@ -93,4 +93,33 @@ class TradeCommandServiceTest {
         // Verify audit log (rejected trades are still audited)
         verify(auditLogRepository, times(1)).save(any(TradeAuditLog.class));
     }
+    
+    @Test
+    void testSubmitTrade_ExpiredMaturityDate_ShouldReject() {
+    	// Given: Trade with past maturity date
+		TradeDto expiredTradeDto = TradeDto.builder()
+				.tradeId("T2")
+				.version(1)
+				.counterPartyId("CP-2")
+				.bookId("B2")
+				.maturityDate(LocalDate.now().minusDays(1))
+				.build();
+		
+		// When
+		TradeSubmissionResponse response = commandService.submitTrade(expiredTradeDto, "JUNIT_TEST");
+		
+		// Then
+		assertEquals("REJECTED", response.getStatus());
+		assertEquals("TRADE_REJECTED", response.getEventType());
+		assertEquals("PAST_MATURITY", response.getReason());
+		
+		// Verify NO MySQL save
+		verify(tradeRepository, never()).save(any(Trade.class));
+		
+		// Verify audit log (rejected trades are still audited)
+		verify(auditLogRepository, times(1)).save(any(TradeAuditLog.class));
+		
+    }
+    
+    
 }
