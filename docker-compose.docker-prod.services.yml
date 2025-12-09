@@ -85,6 +85,34 @@ services:
     deploy:
       replicas: 1
 
+  trade-ai-service:
+    image: ${ECR_REPO_URL}/${ECR_REPO_NAME}/trade-ai-service:${IMAGE_TAG:-latest}
+    container_name: trade-ai-service-prod
+    profiles:
+      - docker-prod
+    env_file:
+      - .env.docker-prod
+    environment:
+      TZ: UTC
+      VECTOR_DB_HOST: chroma
+      VECTOR_DB_PORT: 8000
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29093
+    # Note: Core services (kafka, chroma) are on trade-net-prod, Ollama is on trade-common-network
+    ports:
+      - "${TRADE_AI_SERVICE_PORT:-8094}:8094"
+    networks:
+      - trade-common-network  # For Ollama
+      - trade-net-prod  # For Kafka, Chroma, and other services
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8094/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    restart: always
+    deploy:
+      replicas: 1
+
   trade-ui:
     image: ${ECR_REPO_URL}/${ECR_REPO_NAME}/trade-ui:${IMAGE_TAG:-latest}
     container_name: trade-ui-prod
@@ -116,3 +144,6 @@ networks:
   trade-net-prod:
     external: true
     name: trade-platform-docker-prod_trade-net-prod
+  trade-common-network:
+    external: true
+    name: trade-common-network

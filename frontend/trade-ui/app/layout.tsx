@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import Image from "next/image";
+import AIAssistantWidget from "@/components/AIAssistantWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Trade Platform",
-  description: "Trade Platform - Simulator, Audit, Dashboard, and Chatbot",
+  description: "Trade Platform - Simulator, Audit and AI Assistant",
 };
 
 export default function RootLayout({
@@ -38,6 +39,7 @@ export default function RootLayout({
           </div>
         </div>
         <Providers>{children}</Providers>
+        <AIAssistantWidget />
       </body>
     </html>
   );

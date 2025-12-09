@@ -119,6 +119,34 @@ services:
     deploy:
       replicas: 1
 
+  trade-ai-service:
+    build:
+      context: ./backend
+      dockerfile: trade-ai-service/Dockerfile
+    container_name: trade-ai-service-local
+    profiles:
+      - docker-local
+    env_file:
+      - .env.docker-local
+    environment:
+      TZ: UTC
+      VECTOR_DB_HOST: chroma
+      VECTOR_DB_PORT: 8000
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29093
+    ports:
+      - "${TRADE_AI_SERVICE_PORT:-8094}:8094"
+    networks:
+      - trade-net-local
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8094/health || exit 1"]
+      interval: 30s
+      timeout: 3s
+      start_period: 40s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      replicas: 1
+
   trade-ui:
     build:
       context: ./frontend/trade-ui

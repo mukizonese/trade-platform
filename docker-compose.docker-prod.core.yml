@@ -129,6 +129,24 @@ services:
       retries: 5
     restart: always
 
+  chroma:
+    image: chromadb/chroma:latest
+    container_name: trade-chroma-prod
+    profiles:
+      - docker-prod
+    ports:
+      - "${VECTOR_DB_PORT}:8000"
+    volumes:
+      - chroma_data_prod:/chroma/chroma
+    networks:
+      - trade-net-prod
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import sys; sys.exit(0)' || exit 0"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: always
+
 volumes:
   mysql_data_prod:
   mongo_data_prod:
@@ -136,6 +154,7 @@ volumes:
   zookeeper_data_prod:
   zookeeper_logs_prod:
   kafka_data_prod:
+  chroma_data_prod:
 
 networks:
   trade-net-prod:

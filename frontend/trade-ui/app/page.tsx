@@ -17,7 +17,7 @@ export default function Home() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="simulator">Simulator</TabsTrigger>
             <TabsTrigger value="audit">Audit</TabsTrigger>
-            <TabsTrigger value="chatbot">Chatbot</TabsTrigger>
+            {/* <TabsTrigger value="chatbot">Chatbot</TabsTrigger> */}
 			<TabsTrigger value="architecture">Architecture</TabsTrigger>
           </TabsList>
           <TabsContent value="simulator" className="mt-6">
@@ -26,10 +26,10 @@ export default function Home() {
           <TabsContent value="audit" className="mt-6">
             <AuditTab />
           </TabsContent>
-          <TabsContent value="chatbot" className="mt-6">
+          {/* <TabsContent value="chatbot" className="mt-6">
             <ChatbotTab />
-          </TabsContent>
-		  <TabsContent value="architecture" className="mt-6">
+          </TabsContent> */}
+		      <TabsContent value="architecture" className="mt-6">
 	        <ArchitectureTab />
 	      </TabsContent>
         </Tabs>
