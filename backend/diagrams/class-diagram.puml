@@ -20,7 +20,6 @@ package "Ingress Service" {
     class TradeController
     class AuditController
     class CacheController
-    class GlobalExceptionHandler
   }
   package "Client" {
     class TradeServiceClient
@@ -37,7 +36,6 @@ package "Trade Service" {
     class AuditController
     class CacheController
     class HealthController
-    class GlobalExceptionHandler
   }
   package "Service" {
     class TradeCommandService
@@ -64,8 +62,25 @@ package "Trade Service" {
   }
 }
 
+package "AI Service" {
+  package "API" {
+    class ChatEndpoint
+    class StatsEndpoint
+  }
+  package "Service" {
+    class VectorService
+    class LLMService
+    class TradeReportsConsumer
+  }
+  package "Model" {
+    class TradeEvent
+    class ChatRequest
+    class ChatResponse
+  }
+}
+
 ' Gateway Service relationships
-RateLimitConfig ..> RateLimitLoggingFilter
+GatewayConfig ..> RateLimitLoggingFilter
 
 ' Ingress Service relationships
 IngressService::TradeController --> IngressService::TradeServiceClient
@@ -105,6 +120,15 @@ TradeService::TradeController ..> TradeService::TradeDto
 TradeService::TradeController ..> TradeService::TradeSubmissionResponse
 TradeService::TradeController ..> TradeService::TradeQueryResponse
 TradeService::AuditController ..> TradeService::AuditDto
+
+' AI Service relationships
+AIService::ChatEndpoint --> AIService::VectorService
+AIService::ChatEndpoint --> AIService::LLMService
+AIService::StatsEndpoint --> AIService::VectorService
+AIService::TradeReportsConsumer --> AIService::VectorService
+AIService::ChatEndpoint ..> AIService::ChatRequest
+AIService::ChatEndpoint ..> AIService::ChatResponse
+AIService::TradeReportsConsumer ..> AIService::TradeEvent
 
 @enduml
 

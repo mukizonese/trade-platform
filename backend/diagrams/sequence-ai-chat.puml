@@ -1,0 +1,67 @@
+@startuml 
+title AI Chat Flow
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceMessageAlign center
+skinparam sequenceArrowThickness 2
+
+actor Client
+participant GatewayService
+participant AIService
+participant VectorService
+participant LLMService
+participant TradeReportsConsumer
+database ChromaDB
+participant Ollama
+queue Kafka
+
+Client -> GatewayService: POST /api/ai/chat\n(ChatRequest)
+activate GatewayService
+
+GatewayService -> AIService: POST /api/ai/chat\n(ChatRequest)
+activate AIService
+
+AIService -> VectorService: search_similar(query, limit, min_similarity)
+activate VectorService
+
+VectorService -> ChromaDB: Vector search
+ChromaDB --> VectorService: Similar trades
+VectorService --> AIService: List<Document>
+deactivate VectorService
+
+alt Similar trades found
+    AIService -> LLMService: generate_response(query, similar_trades)
+    activate LLMService
+    
+    LLMService -> LLMService: build_context(similar_trades)
+    
+    LLMService -> Ollama: POST /api/generate\n(prompt)
+    activate Ollama
+    Ollama --> LLMService: Generated response
+    deactivate Ollama
+    
+    LLMService --> AIService: Response text
+    deactivate LLMService
+    
+AIService --> GatewayService: ChatResponse\n(response, sources, session_id)
+deactivate AIService
+
+GatewayService --> Client: 200 OK\nChatResponse
+deactivate GatewayService
+
+
+Kafka -> TradeReportsConsumer: Trade event
+activate TradeReportsConsumer
+
+TradeReportsConsumer -> VectorService: add_document(document)
+activate VectorService
+VectorService -> ChromaDB: Store vector embedding
+ChromaDB --> VectorService: Document stored
+VectorService --> TradeReportsConsumer: Success
+deactivate VectorService
+
+deactivate TradeReportsConsumer
+
+@enduml
+

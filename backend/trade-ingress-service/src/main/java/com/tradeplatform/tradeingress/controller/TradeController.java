@@ -1,12 +1,12 @@
 package com.tradeplatform.tradeingress.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tradeplatform.common.dto.TradeDto;
 import com.tradeplatform.common.dto.TradeQueryResponse;
 import com.tradeplatform.common.dto.TradeSubmissionResponse;
 import com.tradeplatform.tradeingress.client.TradeServiceClient;
-import com.tradeplatform.tradeingress.config.ApiPathsConfig;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.List;
 
@@ -24,8 +23,6 @@ import java.util.List;
 public class TradeController {
     
     private final TradeServiceClient tradeServiceClient;
-    private final ApiPathsConfig apiPathsConfig;
-    private final ObjectMapper objectMapper = new ObjectMapper();
     
     @PostMapping("${api.paths.trades:/api/trades}")
     @RateLimiter(name = "submitTrade", fallbackMethod = "submitTradeFallback")
@@ -46,30 +43,49 @@ public class TradeController {
             }
             
             return ResponseEntity.ok(response);
+        } catch (CallNotPermittedException ex) {
+            TradeSubmissionResponse response = TradeSubmissionResponse.builder()
+                    .status("REJECTED")
+                    .eventType("TRADE_REJECTED")
+                    .reason("CIRCUIT_BREAKER_OPEN")
+                    .message("Circuit breaker is OPEN. Trade service temporarily unavailable.")
+                    .trade(tradeDto)
+                    .build();
+    
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response); // 503
         } catch (WebClientResponseException e) {
-            if (e.getStatusCode().is4xxClientError()) {
-                try {
-                    String responseBody = e.getResponseBodyAsString();
-                    TradeSubmissionResponse errorResponse = objectMapper.readValue(
-                            responseBody, TradeSubmissionResponse.class);
-                    return ResponseEntity.ok(errorResponse);
-                } catch (Exception parseException) {
-                    return ResponseEntity.status(e.getStatusCode()).build();
-                }
-            }
-            log.error("Error calling trade-service: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            HttpStatus status = HttpStatus.resolve(e.getStatusCode().value());
+            String reason = status != null && status.is4xxClientError() ? "CLIENT_ERROR" : "SERVICE_ERROR";
+            String message = e.getMessage();
+            
+            TradeSubmissionResponse response = TradeSubmissionResponse.builder()
+                    .status("REJECTED")
+                    .eventType("TRADE_REJECTED")
+                    .reason(reason)
+                    .message(message != null ? message : "Error occurred while processing trade.")
+                    .trade(tradeDto)
+                    .build();
+            
+            HttpStatus responseStatus = status != null && status.is4xxClientError() 
+                    ? status 
+                    : HttpStatus.INTERNAL_SERVER_ERROR;
+            return ResponseEntity.status(responseStatus).body(response);
         } catch (Exception e) {
-            log.error("Error calling trade-service: {}", e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            TradeSubmissionResponse response = TradeSubmissionResponse.builder()
+                .status("REJECTED")
+                .eventType("TRADE_REJECTED")
+                .reason("GENERIC_ERROR")
+                .message("Unexpected error occurred while submitting trade.")
+                .trade(tradeDto)
+                .build();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response); // 500
         }
     }
     
     public ResponseEntity<TradeSubmissionResponse> submitTradeFallback(
-            TradeDto tradeDto, String source, Exception ex) {
-        log.warn("Rate limit exceeded at service layer for tradeId={}: {}", 
-                tradeDto.getTradeId(), ex.getMessage());
-        
+            //TradeDto tradeDto, String source) {
+            TradeDto tradeDto, String source, Throwable ex) {
+        log.warn("Rate limit exceeded for tradeId={}", tradeDto.getTradeId());
         TradeSubmissionResponse response = TradeSubmissionResponse.builder()
                 .status("REJECTED")
                 .eventType("TRADE_REJECTED")
@@ -77,8 +93,7 @@ public class TradeController {
                 .message("Service rate limit exceeded. Please try again later.")
                 .trade(tradeDto)
                 .build();
-        
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response);
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(response); //429
     }
     
     @GetMapping("${api.paths.trades:/api/trades}")

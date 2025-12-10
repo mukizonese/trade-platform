@@ -19,10 +19,6 @@ activate GatewayService
 GatewayService -> IngressService: Route request
 activate IngressService
 
-IngressService -> IngressService: Circuit breaker check
-activate IngressService
-deactivate IngressService
-
 IngressService -> Nginx: GET /api/audit/trades\n?page=0&size=50
 activate Nginx
 

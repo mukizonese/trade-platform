@@ -61,8 +61,7 @@ public class TradeServiceClient {
                     return uriBuilder.build();
                 })
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<Page<TradeQueryResponse>>() {})
-                .transformDeferred(CircuitBreakerOperator.of(circuitBreakerRegistry.circuitBreaker("tradeService")));
+                .bodyToMono(new ParameterizedTypeReference<Page<TradeQueryResponse>>() {});
     }
     
     public Mono<List<TradeQueryResponse>> getTradeById(String tradeId, Boolean latestOnly) {

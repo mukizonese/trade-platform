@@ -10,19 +10,21 @@ rectangle "Client Layer" {
 rectangle "Gateway Layer" {
   [Gateway Service\nInstance 1] as Gateway1
   [Gateway Service\nInstance 2] as Gateway2
-  [Gateway Service\nInstance N] as GatewayN
 }
 
 rectangle "Application Tier" {
   [Ingress Service\nInstance 1] as Ingress1
   [Ingress Service\nInstance 2] as Ingress2
-  [Ingress Service\nInstance N] as IngressN
   
   [Nginx Load Balancer] as Nginx
   
   [Trade Service\nInstance 1] as Trade1
   [Trade Service\nInstance 2] as Trade2
-  [Trade Service\nInstance N] as TradeN
+}
+
+rectangle "AI Tier" {
+  [AI Service\nInstance 1] as AI1
+  [AI Service\nInstance 2] as AI2
 }
 
 rectangle "Infrastructure (Docker Containers)" {
@@ -36,6 +38,11 @@ rectangle "Infrastructure (Docker Containers)" {
     node "Kafka Broker" as Kafka
     node "Zookeeper" as Zookeeper
   }
+
+  package "AI Cluster" {
+    database "ChromaDB" as ChromaDB
+    node "Ollama LLM" as Ollama
+  }
 }
 
 rectangle "Monitoring" {
@@ -45,21 +52,17 @@ rectangle "Monitoring" {
 
 Browser --> Gateway1 : HTTPS
 Mobile --> Gateway1 : HTTPS
-APIClient --> Gateway1 : HTTPS
 
 Gateway1 --> Ingress1 : HTTP
-Gateway1 --> Ingress2 : HTTP
-Gateway2 --> Ingress1 : HTTP
+Gateway1 --> AI1 : HTTP
 Gateway2 --> Ingress2 : HTTP
+Gateway2 --> AI2 : HTTP
 
 Ingress1 --> Nginx : HTTP
-Ingress1 --> Nginx : HTTP
-Ingress2 --> Nginx : HTTP
 Ingress2 --> Nginx : HTTP
 
 Nginx --> Trade1 : HTTP
 Nginx --> Trade2 : HTTP
-Nginx --> TradeN : HTTP
 
 Trade1 --> MySQLPrimary
 Trade1 --> MongoDB
@@ -67,18 +70,19 @@ Trade1 --> Redis
 Trade1 --> Kafka
 
 Trade2 --> MySQLPrimary
-Trade2 --> MongoDB
-Trade2 --> Redis
 Trade2 --> Kafka
 
-Gateway1 --> Redis
-Gateway2 --> Redis
+AI1 --> ChromaDB
+AI1 --> Ollama
+AI1 --> Kafka
+
+AI2 --> ChromaDB
+AI2 --> Ollama
 
 Kafka --> Zookeeper
 MySQLPrimary --> MySQLReplica
 
 Gateway1 --> Prometheus
-Ingress1 --> Prometheus
 Trade1 --> Prometheus
 Prometheus --> Grafana
 

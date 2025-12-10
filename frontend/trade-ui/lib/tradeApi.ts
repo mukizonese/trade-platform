@@ -24,19 +24,42 @@ export interface CachedTrade {
   [key: string]: string | number | boolean | null | undefined;
 }
 
-// Custom error class for rate limiting
-export class RateLimitError extends Error {
-  constructor(message: string, public retryAfter?: number) {
+export class TradeError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+    public readonly code?: string,
+  ) {
     super(message);
+    this.name = 'TradeError';
+  }
+}
+
+export class RateLimitError extends TradeError {
+  constructor(message: string, public readonly retryAfterSeconds?: number) {
+    super(message, 429, 'RATE_LIMIT_EXCEEDED');
     this.name = 'RateLimitError';
   }
 }
 
-// Custom error class for service unavailable (circuit breaker)
-export class ServiceUnavailableError extends Error {
+export class CircuitBreakerError extends TradeError {
+  constructor(message: string) {
+    super(message, 503, 'CIRCUIT_BREAKER_OPEN');
+    this.name = 'CircuitBreakerError';
+  }
+}
+
+export class ServiceUnavailableError extends TradeError {
+  constructor(message: string) {
+    super(message, 503, 'SERVICE_UNAVAILABLE');
+    this.name = 'ServiceUnavailableError';
+  }
+}
+
+export class NetworkError extends TradeError {
   constructor(message: string) {
     super(message);
-    this.name = 'ServiceUnavailableError';
+    this.name = 'NetworkError';
   }
 }
 
@@ -44,64 +67,47 @@ export async function submitTrade(
   trade: TradeDto,
   source: string = 'UI_SIMULATOR'
 ): Promise<TradeSubmissionResponse> {
-  let response: Response;
-  
-  try {
-    response = await fetch(`${API_BASE_URL}/api/trades?source=${source}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(trade),
-    });
-  } catch (error) {
-    // Network error - service is likely down
-    throw new ServiceUnavailableError(
-      'Service is unavailable. The trade service may be down or unreachable.'
+  const response = await fetch(`${API_BASE_URL}/api/trades?source=${source}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(trade),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as TradeSubmissionResponse;
+  const reason = data.reason || '';
+
+  if (response.ok) {
+    return data;
+  }
+
+  // Rate limit
+  if (response.status === 429 || reason === 'RATE_LIMIT_EXCEEDED') {
+    const retryAfterHeader = response.headers.get('Retry-After');
+    const retryAfterSeconds = retryAfterHeader ? Number(retryAfterHeader) : undefined;
+    throw new RateLimitError(
+      data.message || 'Rate limit exceeded',
+      retryAfterSeconds,
     );
   }
 
-  // Handle rate limiting (429)
-  if (response.status === 429) {
-    let errorMessage = 'Rate limit exceeded. Please wait before trying again.';
-    const retryAfter = response.headers.get('Retry-After');
-    
-    try {
-      const data = await response.json();
-      errorMessage = data.message || data.error || errorMessage;
-    } catch {
-      // If response is not JSON, use default message
-    }
-    
-    throw new RateLimitError(errorMessage, retryAfter ? parseInt(retryAfter) : undefined);
+  // Circuit breaker open
+  if (response.status === 503 && reason === 'CIRCUIT_BREAKER_OPEN') {
+    throw new CircuitBreakerError(
+      data.message || 'Circuit breaker open: trade service unavailable',
+    );
   }
 
-  // Handle service unavailable (503) - circuit breaker open
+  // Generic service unavailable
   if (response.status === 503) {
     throw new ServiceUnavailableError(
-      'Service temporarily unavailable. The circuit breaker is open. Please try again later.'
+      data.message || 'Trade service unavailable',
     );
   }
 
-  // Handle other server errors (500, 502, 504) - service issues
-  if (response.status >= 500) {
-    throw new ServiceUnavailableError(
-      'Service error occurred. The trade service may be experiencing issues.'
-    );
-  }
-
-  let data: TradeSubmissionResponse;
-  try {
-    data = await response.json();
-  } catch {
-    throw new Error('Invalid response from server');
-  }
-
-  if (!response.ok) {
-    throw new Error(`Failed to submit trade: ${response.statusText}`);
-  }
-
-  return data;
+  // Network / generic
+  throw new NetworkError(
+    data.message || `Request failed with status ${response.status}`,
+  );
 }
 
 export async function getAllTradesFromCache(): Promise<CachedTrade[]> {
