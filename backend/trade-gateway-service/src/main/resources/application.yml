@@ -19,6 +19,12 @@ spring:
         compression: true
       forward-headers-strategy: native
       routes:
+        - id: trade-ingress-actuator
+          uri: ${GATEWAY_TRADE_INGRESS_URL}
+          predicates:
+            - Path=/actuator/**
+          filters:
+            - StripPrefix=0
         - id: trade-ingress-trades-post
           uri: ${GATEWAY_TRADE_INGRESS_URL}
           predicates:

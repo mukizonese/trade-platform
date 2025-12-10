@@ -16,25 +16,29 @@ rectangle "Infrastructure" {
     node "Redis Cache" as Redis
     node "Kafka Broker" as Kafka
     database "MongoDB\ntrade_audit_db" as Mongo
+    node "Ollama" as LLM
+    node "ChromaDB" as VecotorDB
   }
 }
-rectangle "Data Lake / Analytics" {
-  node "Spark Jobs" as Spark
-  node "MinIO / S3\nParquet Storage" as Minio
-  node "Trino / Superset" as Trino
+rectangle "AI/ Analytics" {
+  node "ChromaDB" as VecotorDB
+  node "Ollama" as LLM
+}
+rectangle "Backend Data Services (Python FastAPI)" {
+  component "Trade AI Service\n(AI Prompts)" as TradeAiSvc
 }
 Trader --> UI: HTTP(S)
 UI --> GatewaySvc: REST / JSON
-GatewaySvc --> IngressSvc: Route requests\nRate limiting
-IngressSvc --> Nginx: Circuit breaker\nResilience
+GatewaySvc --> IngressSvc: Trade requests
+GatewaySvc --> TradeAiSvc: AI features
+IngressSvc --> Nginx: Rate limit\nCircuit breaker
 Nginx --> TradeSvc: Load balance\nReverse proxy
 TradeSvc --> MySQL : CRUD trades
 TradeSvc --> Redis : Cache lookups
 TradeSvc --> Kafka : Publish trade events
 TradeSvc --> Mongo : Write audit logs
-GatewaySvc --> Redis : Rate limit check
-Kafka --> Spark : Stream trades/holdings
-Spark --> Minio : Write Parquet
-Trino --> Minio : Query data
+Kafka --> TradeAiSvc : Stream trades
+TradeAiSvc --> VecotorDB : Store embeddings
+TradeAiSvc --> LLM : Query for insights
 @enduml
 

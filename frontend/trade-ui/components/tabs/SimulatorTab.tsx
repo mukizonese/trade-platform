@@ -8,7 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { submitTrade, getAllTradesFromCache, type TradeDto, type CachedTrade, type TradeSubmissionResponse, RateLimitError, ServiceUnavailableError } from '@/lib/tradeApi';
+import RateLimitTestPanel from './RateLimitTestPanel';
+import CircuitBreakerTestPanel from './CircuitBreakerTestPanel';
 import toast from 'react-hot-toast';
+import { handleTradeError } from '@/lib/handleTradeError';
 
 type SortField = 'tradeId' | 'version' | 'counterPartyId' | 'bookId' | 'maturityDate' | 'expired' | 'createdDate' | 'lastUpdatedAt' | null;
 type SortDirection = 'asc' | 'desc';
@@ -26,8 +29,7 @@ export default function SimulatorTab() {
   const [filterText, setFilterText] = useState('');
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [testRequestCount, setTestRequestCount] = useState<number>(5);
-  const [isTestingRateLimit, setIsTestingRateLimit] = useState(false);
+  const [expandedPanel, setExpandedPanel] = useState<'rateLimit' | 'circuitBreaker' | null>(null);
 
   // Fetch trades from cache
   const { data: trades = [], isLoading, error: cacheError } = useQuery<CachedTrade[]>({
@@ -51,7 +53,7 @@ export default function SimulatorTab() {
     mutationFn: (trade: TradeDto) => submitTrade(trade),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['trades', 'cache'] });
-      
+        
       if (data.status === 'REJECTED') {
         toast.error(data.message || 'Trade submission rejected', {
           icon: '❌',
@@ -59,7 +61,6 @@ export default function SimulatorTab() {
         });
       } else {
         toast.success('Trade submitted successfully!');
-        // Reset form only on successful acceptance
         setFormData({
           tradeId: '',
           version: 1,
@@ -70,28 +71,11 @@ export default function SimulatorTab() {
       }
     },
     onError: (error) => {
-      if (error instanceof RateLimitError) {
-        const retryMsg = error.retryAfter 
-          ? ` Please wait ${error.retryAfter} seconds before trying again.`
-          : '';
-        toast.error(`Rate Limit Exceeded: ${error.message}${retryMsg}`, {
-          icon: '🚫',
-          duration: 6000,
-        });
-      } else if (error instanceof ServiceUnavailableError) {
-        toast.error(`Service Unavailable: ${error.message}`, {
-          icon: '⚠️',
-          duration: 6000,
-        });
-      } else {
-        // Other errors (validation, etc.)
-        toast.error(`Trade Submission Failed: ${error.message || 'An unexpected error occurred'}`, {
-          icon: '❌',
-        });
-      }
+      handleTradeError(error);
     },
   });
 
+  // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     submitMutation.mutate(formData);
@@ -99,91 +83,6 @@ export default function SimulatorTab() {
 
   const handleChange = (field: keyof TradeDto, value: string | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
-
-  // Test rate limiting with parallel requests
-  const handleTestRateLimit = async () => {
-    if (!formData.tradeId || !formData.counterPartyId || !formData.bookId || !formData.maturityDate) {
-      toast.error('Please fill in all trade fields before testing rate limits');
-      return;
-    }
-
-    if (testRequestCount < 1 || testRequestCount > 50) {
-      toast.error('Number of requests must be between 1 and 50');
-      return;
-    }
-
-    setIsTestingRateLimit(true);
-    let successCount = 0;
-    let rejectedCount = 0;
-    let rateLimitCount = 0;
-    let serviceErrorCount = 0;
-
-    // Create array of promises for parallel requests
-    const requests = Array.from({ length: testRequestCount }, (_, index) => {
-      const testTrade: TradeDto = {
-        ...formData,
-        tradeId: `${formData.tradeId}-${index + 1}`,
-      };
-      return submitTrade(testTrade)
-        .then((data: TradeSubmissionResponse) => {
-          if (data.status === 'REJECTED') {
-            rejectedCount++;
-            toast.error(data.message || 'Trade rejected', {
-              icon: '❌',
-              duration: 4000,
-            });
-            return { rejected: true };
-          }
-          successCount++;
-          return { success: true };
-        })
-        .catch((error) => {
-          // Show toast for each error as it occurs
-          if (error instanceof RateLimitError) {
-            rateLimitCount++;
-            const retryMsg = error.retryAfter 
-              ? ` Please wait ${error.retryAfter} seconds.`
-              : '';
-            toast.error(`Rate Limit Exceeded: ${error.message}${retryMsg}`, {
-              icon: '🚫',
-              duration: 6000,
-            });
-          } else if (error instanceof ServiceUnavailableError) {
-            serviceErrorCount++;
-            toast.error(`Service Unavailable: ${error.message}`, {
-              icon: '⚠️',
-              duration: 6000,
-            });
-          } else {
-            serviceErrorCount++;
-            toast.error(`Request Failed: ${error.message || 'Unknown error'}`, {
-              icon: '❌',
-            });
-          }
-          return { error };
-        });
-    });
-
-    // Execute all requests in parallel
-    await Promise.all(requests);
-
-    setIsTestingRateLimit(false);
-
-    // Show summary toast after all requests complete
-    setTimeout(() => {
-      if (rateLimitCount > 0 || serviceErrorCount > 0 || rejectedCount > 0) {
-        toast.success(
-          `Test Complete: ${successCount} accepted, ${rejectedCount} rejected, ${rateLimitCount} rate limited, ${serviceErrorCount} errors`,
-          { duration: 4000 }
-        );
-      } else {
-        toast.success(`All ${successCount} requests succeeded!`, { duration: 3000 });
-      }
-    }, 500);
-
-    // Refresh cache
-    queryClient.invalidateQueries({ queryKey: ['trades', 'cache'] });
   };
 
   // Helper to get trade field value
@@ -350,41 +249,18 @@ export default function SimulatorTab() {
             </Button>
           </form>
 
-          {/* Rate Limit Test Panel */}
-          <div className="mt-6 pt-6 border-t">
-            <CardHeader className="px-0 pt-0">
-              <CardTitle className="text-lg">Rate Limit Test</CardTitle>
-              <CardDescription>
-                Test rate limiting and circuit breaker by sending parallel requests
-              </CardDescription>
-            </CardHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="testRequestCount">Number of Requests</Label>
-                <Input
-                  id="testRequestCount"
-                  type="number"
-                  min="1"
-                  max="50"
-                  value={testRequestCount}
-                  onChange={(e) => setTestRequestCount(parseInt(e.target.value) || 1)}
-                  placeholder="Enter number of parallel requests"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Will send {testRequestCount} parallel requests using the trade data above
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleTestRateLimit}
-                disabled={isTestingRateLimit || submitMutation.isPending}
-              >
-                {isTestingRateLimit ? `Sending ${testRequestCount} requests...` : `Test Rate Limits (${testRequestCount} requests)`}
-              </Button>
-            </div>
-          </div>
+          <RateLimitTestPanel 
+            formData={formData} 
+            isSubmitting={submitMutation.isPending}
+            isExpanded={expandedPanel === 'rateLimit'}
+            onToggle={() => setExpandedPanel(expandedPanel === 'rateLimit' ? null : 'rateLimit')}
+          />
+          <CircuitBreakerTestPanel 
+            formData={formData} 
+            isSubmitting={submitMutation.isPending}
+            isExpanded={expandedPanel === 'circuitBreaker'}
+            onToggle={() => setExpandedPanel(expandedPanel === 'circuitBreaker' ? null : 'circuitBreaker')}
+          />
         </CardContent>
       </Card>
 

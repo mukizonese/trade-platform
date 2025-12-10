@@ -23,17 +23,12 @@ queue Kafka
 Client -> GatewayService: POST /api/trades\n(TradeDto, source)
 activate GatewayService
 
-GatewayService -> GatewayService: Rate limit check
-activate GatewayService
-GatewayService -> Redis: Check rate limit
-Redis --> GatewayService: Rate limit status
-deactivate GatewayService
-
 GatewayService -> IngressService: Route request
 activate IngressService
 
-IngressService -> IngressService: Circuit breaker check
+IngressService -> IngressService: Rate limit check
 activate IngressService
+IngressService -> IngressService: Circuit breaker check
 deactivate IngressService
 
 IngressService -> Nginx: POST /api/trades\n(TradeDto, source)
@@ -89,12 +84,6 @@ alt Version is valid (new or higher)
     TradeAuditLogRepository --> TradeCommandService: TradeAuditLog
     deactivate TradeAuditLogRepository
     deactivate TradeCommandService
-    
-    TradeCommandService -> CacheService: setLatestTrade(tradeId, tradeMap)
-    activate CacheService
-    CacheService -> Redis: SET trade:latest:{tradeId}
-    Redis --> CacheService: OK
-    deactivate CacheService
     
     TradeCommandService -> CacheService: setTrade(tradeId, version, tradeMap)
     activate CacheService

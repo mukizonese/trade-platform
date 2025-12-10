@@ -43,12 +43,6 @@ loop For each matured trade
     TradeRepository --> TradeCommandService: Trade
     deactivate TradeRepository
     
-    TradeCommandService -> CacheService: setLatestTrade(tradeId, tradeMap)
-    activate CacheService
-    CacheService -> Redis: UPDATE trade:latest:{tradeId}
-    Redis --> CacheService: OK
-    deactivate CacheService
-    
     TradeCommandService -> CacheService: setTrade(tradeId, version, tradeMap)
     activate CacheService
     CacheService -> Redis: UPDATE trade:{tradeId}:{version}

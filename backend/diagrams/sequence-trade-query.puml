@@ -20,8 +20,9 @@ activate GatewayService
 GatewayService -> IngressService: Route request
 activate IngressService
 
-IngressService -> IngressService: Circuit breaker check
+IngressService -> IngressService: Rate limit check
 activate IngressService
+IngressService -> IngressService: Circuit breaker check
 deactivate IngressService
 
 IngressService -> Nginx: GET /api/trades\n?latestOnly=true&tradeId=T1

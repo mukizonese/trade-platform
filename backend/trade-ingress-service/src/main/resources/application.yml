@@ -41,18 +41,19 @@ api:
     audit: ${API_PATH_AUDIT:/api/audit}
 
 resilience4j:
+  circuitbreaker:
+    instances:
+      tradeService:
+        registerHealthIndicator: true
+        minimumNumberOfCalls: ${CIRCUIT_BREAKER_MINIMUM_NUMBER_OF_CALLS}
+        slidingWindowSize: ${CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE}
+        failureRateThreshold: ${CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD}
+        waitDurationInOpenState: ${CIRCUIT_BREAKER_WAIT_DURATION_IN_OPEN_STATE}
   ratelimiter:
     instances:
       submitTrade:
         limitForPeriod: ${RATE_LIMIT_LIMIT_FOR_PERIOD}
         limitRefreshPeriod: ${RATE_LIMIT_REFRESH_PERIOD}
-        timeoutDuration: 0
+        timeoutDuration: ${RATE_LIMIT_TIMEOUT_DURATION}
         registerHealthIndicator: true
-  circuitbreaker:
-    instances:
-      tradeService:
-        registerHealthIndicator: true
-        slidingWindowSize: ${CIRCUIT_BREAKER_SLIDING_WINDOW_SIZE}
-        failureRateThreshold: ${CIRCUIT_BREAKER_FAILURE_RATE_THRESHOLD}
-        waitDurationInOpenState: ${CIRCUIT_BREAKER_WAIT_DURATION_IN_OPEN_STATE}
 

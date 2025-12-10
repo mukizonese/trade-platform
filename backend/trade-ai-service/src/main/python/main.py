@@ -2,7 +2,6 @@ import os
 import logging
 from pathlib import Path
 from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
@@ -77,10 +76,6 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(title="Trade AI Service", version="1.0.0", lifespan=lifespan)
-
-cors_origins = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3020").split(",")
-app.add_middleware(CORSMiddleware, allow_origins=cors_origins, allow_credentials=True, 
-                  allow_methods=["*"], allow_headers=["*"])
 
 class ChatRequest(BaseModel):
     message: str
