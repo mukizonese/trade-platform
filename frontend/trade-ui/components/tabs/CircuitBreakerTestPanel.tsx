@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { submitTrade, type TradeDto, type TradeSubmissionResponse, ServiceUnavailableError, RateLimitError } from '@/lib/tradeApi';
+import { submitTrade, type TradeDto } from '@/lib/tradeApi';
 import { getCircuitBreakerConfig, type CircuitBreakerConfig } from '@/lib/actuatorApi';
 import toast from 'react-hot-toast';
 import { handleTradeError } from '@/lib/handleTradeError';
@@ -48,7 +48,7 @@ export default function CircuitBreakerTestPanel({ formData, isSubmitting, isExpa
 
     setIsTesting(true);
     let successCount = 0;
-    let rejectedCount = 0;
+    const rejectedCount = 0;
     let serviceErrorCount = 0;
     let previousWasError = false;
 
@@ -59,7 +59,7 @@ export default function CircuitBreakerTestPanel({ formData, isSubmitting, isExpa
       };
 
       try {
-        const data = await submitTrade(testTrade);
+        await submitTrade(testTrade);
         successCount++;
         if (previousWasError) {
           toast.success('Circuit Breaker CLOSED: Service is back online', {
@@ -117,19 +117,19 @@ export default function CircuitBreakerTestPanel({ formData, isSubmitting, isExpa
             <div className="space-y-1">
               <div>
                 <span className="text-muted-foreground">slidingWindowSize:</span>
-                <span className="ml-2 font-mono">{config?.slidingWindowSize || '5'}</span>
+                <span className="ml-2 font-mono">{config?.slidingWindowSize || '1'}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">failureRateThreshold:</span>
-                <span className="ml-2 font-mono">{config?.failureRateThreshold || '50'}%</span>
+                <span className="ml-2 font-mono">{config?.failureRateThreshold || '1'}%</span>
               </div>
               <div>
                 <span className="text-muted-foreground">waitDurationInOpenState:</span>
-                <span className="ml-2 font-mono">{config?.waitDurationInOpenState || '10s'}</span>
+                <span className="ml-2 font-mono">{config?.waitDurationInOpenState || '5s'}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">minimumNumberOfCalls:</span>
-                <span className="ml-2 font-mono">{config?.minimumNumberOfCalls || '10'}</span>
+                <span className="ml-2 font-mono">{config?.minimumNumberOfCalls || '1'}</span>
               </div>
             </div>
           </div>

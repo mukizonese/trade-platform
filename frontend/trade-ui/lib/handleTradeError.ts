@@ -5,6 +5,7 @@ import {
   CircuitBreakerError,
   ServiceUnavailableError,
   NetworkError,
+  TradeError,
 } from '@/lib/tradeApi';
 
 export function handleTradeError(error: unknown) {
@@ -33,6 +34,15 @@ export function handleTradeError(error: unknown) {
       duration: 6000,
     });
     return 'serviceUnavailable';
+  }
+
+  // Handle business errors (TradeError with 400 status) - check BEFORE NetworkError
+  if (error instanceof TradeError && error.status === 400) {
+    toast.error(error.message, {
+      icon: '❌',
+      duration: 6000,
+    });
+    return 'businessError';
   }
 
   if (error instanceof NetworkError) {

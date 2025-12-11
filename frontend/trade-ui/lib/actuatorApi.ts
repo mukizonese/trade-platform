@@ -19,7 +19,7 @@ export async function getRateLimiterConfig(): Promise<RateLimiterConfig | null> 
     if (!response.ok) return null;
     const data = await response.json();
     return {
-      limitForPeriod: data.limitForPeriod || '2',
+      limitForPeriod: data.limitForPeriod || '10',
       limitRefreshPeriod: data.limitRefreshPeriod || '5s',
       timeoutDuration: data.timeoutDuration || '0',
     };
@@ -34,10 +34,10 @@ export async function getCircuitBreakerConfig(): Promise<CircuitBreakerConfig | 
     if (!response.ok) return null;
     const data = await response.json();
     return {
-      slidingWindowSize: data.slidingWindowSize || '5',
-      failureRateThreshold: data.failureRateThreshold || '50',
-      waitDurationInOpenState: data.waitDurationInOpenState || '10s',
-      minimumNumberOfCalls: data.minimumNumberOfCalls || '10',
+      slidingWindowSize: data.slidingWindowSize || '1',
+      failureRateThreshold: data.failureRateThreshold || '1',
+      waitDurationInOpenState: data.waitDurationInOpenState || '5s',
+      minimumNumberOfCalls: data.minimumNumberOfCalls || '1',
     };
   } catch {
     return null;

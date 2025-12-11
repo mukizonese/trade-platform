@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { submitTrade, type TradeDto, type TradeSubmissionResponse, RateLimitError, ServiceUnavailableError } from '@/lib/tradeApi';
+import { submitTrade, type TradeDto, type TradeSubmissionResponse } from '@/lib/tradeApi';
 import { getRateLimiterConfig, type RateLimiterConfig } from '@/lib/actuatorApi';
 import toast from 'react-hot-toast';
 import { handleTradeError } from '@/lib/handleTradeError';
@@ -108,7 +108,7 @@ export default function RateLimitTestPanel({ formData, isSubmitting, isExpanded,
             <div className="space-y-1">
               <div>
                 <span className="text-muted-foreground">limitForPeriod:</span>
-                <span className="ml-2 font-mono">{config?.limitForPeriod || '2'}/period</span>
+                <span className="ml-2 font-mono">{config?.limitForPeriod || '10'}/period</span>
               </div>
               <div>
                 <span className="text-muted-foreground">limitRefreshPeriod:</span>

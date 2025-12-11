@@ -1,5 +1,6 @@
 package com.tradeplatform.tradeingress.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tradeplatform.common.dto.TradeDto;
 import com.tradeplatform.common.dto.TradeQueryResponse;
 import com.tradeplatform.common.dto.TradeSubmissionResponse;
@@ -23,6 +24,7 @@ import java.util.List;
 public class TradeController {
     
     private final TradeServiceClient tradeServiceClient;
+    private final ObjectMapper objectMapper;
     
     @PostMapping("${api.paths.trades:/api/trades}")
     @RateLimiter(name = "submitTrade", fallbackMethod = "submitTradeFallback")
@@ -55,16 +57,34 @@ public class TradeController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response); // 503
         } catch (WebClientResponseException e) {
             HttpStatus status = HttpStatus.resolve(e.getStatusCode().value());
-            String reason = status != null && status.is4xxClientError() ? "CLIENT_ERROR" : "SERVICE_ERROR";
-            String message = e.getMessage();
             
-            TradeSubmissionResponse response = TradeSubmissionResponse.builder()
-                    .status("REJECTED")
-                    .eventType("TRADE_REJECTED")
-                    .reason(reason)
-                    .message(message != null ? message : "Error occurred while processing trade.")
-                    .trade(tradeDto)
-                    .build();
+            // Try to extract the original TradeSubmissionResponse from the error response body
+            TradeSubmissionResponse originalResponse = null;
+            try {
+                String responseBody = e.getResponseBodyAsString();
+                if (responseBody != null && !responseBody.isEmpty()) {
+                    originalResponse = objectMapper.readValue(responseBody, TradeSubmissionResponse.class);
+                }
+            } catch (Exception parseException) {
+                log.debug("Could not parse error response body: {}", parseException.getMessage());
+            }
+            
+            // Use original response if available, otherwise create a generic one
+            TradeSubmissionResponse response;
+            if (originalResponse != null && originalResponse.getStatus() != null) {
+                // Preserve the original business error message
+                response = originalResponse;
+            } else {
+                String reason = status != null && status.is4xxClientError() ? "CLIENT_ERROR" : "SERVICE_ERROR";
+                String message = e.getMessage();
+                response = TradeSubmissionResponse.builder()
+                        .status("REJECTED")
+                        .eventType("TRADE_REJECTED")
+                        .reason(reason)
+                        .message(message != null ? message : "Error occurred while processing trade.")
+                        .trade(tradeDto)
+                        .build();
+            }
             
             HttpStatus responseStatus = status != null && status.is4xxClientError() 
                     ? status 
