@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
-import { sendChatMessage, ChatResponse, ChatSource } from '@/lib/aiApi';
+import { sendChatMessage, ChatSource } from '@/lib/aiApi';
 import { MessageCircle, ChevronDown, Send, Bot } from 'lucide-react';
 
 interface Message {

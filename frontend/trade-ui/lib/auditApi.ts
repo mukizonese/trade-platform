@@ -1,9 +1,6 @@
 // Gateway route
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
 
-// Direct route
-const API_BASE_URL_DIRECT = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-
 export interface AuditDto {
   auditId: string;
   tradeId: string;

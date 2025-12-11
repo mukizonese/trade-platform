@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { submitTrade, getAllTradesFromCache, type TradeDto, type CachedTrade, type TradeSubmissionResponse, RateLimitError, ServiceUnavailableError } from '@/lib/tradeApi';
+import { submitTrade, getAllTradesFromCache, type TradeDto, type CachedTrade, ServiceUnavailableError } from '@/lib/tradeApi';
 import RateLimitTestPanel from './RateLimitTestPanel';
 import CircuitBreakerTestPanel from './CircuitBreakerTestPanel';
 import toast from 'react-hot-toast';

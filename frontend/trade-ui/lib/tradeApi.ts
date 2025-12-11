@@ -1,9 +1,6 @@
 // Gateway route
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8090';
 
-// Direct route
-const API_BASE_URL_DIRECT = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8088';
-
 export interface TradeDto {
   tradeId: string;
   version: number;
@@ -104,6 +101,23 @@ export async function submitTrade(
     );
   }
 
+  // Business rejections (400 Bad Request) - check if it's a validation/business error
+  if (response.status === 400 && data.message) {
+    // Check if message contains business validation keywords or if status is REJECTED
+    const isBusinessError = data.status === 'REJECTED' || 
+                           data.reason === 'PAST_MATURITY' || 
+                           data.reason === 'LOWER_VERSION' ||
+                           data.reason === 'CLIENT_ERROR' ||
+                           data.message.includes('Validation failed') ||
+                           data.message.includes('cannot be accepted') ||
+                           data.message.includes('rejected');
+    
+    if (isBusinessError) {
+      // Preserve business error message by throwing a TradeError with the message
+      throw new TradeError(data.message, 400, data.reason);
+    }
+  }
+
   // Network / generic
   throw new NetworkError(
     data.message || `Request failed with status ${response.status}`,
@@ -115,7 +129,7 @@ export async function getAllTradesFromCache(): Promise<CachedTrade[]> {
   
   try {
     response = await fetch(`${API_BASE_URL}/api/trades/cache`);
-  } catch (error) {
+  } catch {
     // Network error - service is likely down
     throw new ServiceUnavailableError(
       'Service is unavailable. Unable to fetch trades from cache.'
